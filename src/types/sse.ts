@@ -1,14 +1,14 @@
-export type SSEEventType = 
-  | 'content' 
-  | 'tool_start' 
-  | 'tool_end' 
-  | 'interrupt' 
-  | 'done' 
+export type SSEEventName = 
+  | 'messages/partial'
+  | 'tool/start'
+  | 'tool/end'
+  | 'interrupt'
+  | 'updates'
   | 'error'
-  | 'update'
+  | 'end'
 
 export interface SSEEvent {
-  type: SSEEventType
+  event: SSEEventName
   content?: string
   is_final?: boolean
   tool?: string

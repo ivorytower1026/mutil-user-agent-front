@@ -55,14 +55,14 @@ export function useChatStream() {
   }
 
   function handleEvent(event: SSEEvent) {
-    switch (event.type) {
-      case 'content':
+    switch (event.event) {
+      case 'messages/partial':
         if (event.content) {
           chatStore.appendAssistantContent(event.content)
         }
         break
 
-      case 'tool_start':
+      case 'tool/start':
         if (event.tool && event.input) {
           chatStore.addToolCall({
             name: event.tool,
@@ -71,7 +71,7 @@ export function useChatStream() {
         }
         break
 
-      case 'tool_end':
+      case 'tool/end':
         if (event.tool) {
           chatStore.completeToolCall(event.tool, event.output)
         }
@@ -84,23 +84,20 @@ export function useChatStream() {
           data: event.data || { ...event }
         })
         if (sessionStore.currentThreadId) {
-          sessionStore.updateSessionStatus(
-            sessionStore.currentThreadId,
-            'interrupted'
-          )
+          sessionStore.updateSessionStatus(sessionStore.currentThreadId, 'interrupted')
         }
+        break
+
+      case 'updates':
         break
 
       case 'error':
         chatStore.setError(event.message || 'Unknown error')
         break
 
-      case 'done':
+      case 'end':
         if (sessionStore.currentThreadId) {
-          sessionStore.updateSessionStatus(
-            sessionStore.currentThreadId,
-            'idle'
-          )
+          sessionStore.updateSessionStatus(sessionStore.currentThreadId, 'idle')
         }
         break
     }

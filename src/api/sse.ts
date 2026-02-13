@@ -15,6 +15,51 @@ function getToken(): string | null {
   return null
 }
 
+interface ParsedSSE {
+  event: string
+  data: Record<string, unknown>
+}
+
+function parseSSE(text: string): ParsedSSE[] {
+  const events: ParsedSSE[] = []
+  const lines = text.split('\n')
+  let currentEvent = ''
+
+  for (const line of lines) {
+    if (line.startsWith('event:')) {
+      currentEvent = line.slice(6).trim()
+    } else if (line.startsWith('data:')) {
+      const dataStr = line.slice(5).trim()
+      if (dataStr && currentEvent) {
+        try {
+          const data = JSON.parse(dataStr)
+          events.push({ event: currentEvent, data })
+          currentEvent = ''
+        } catch (e) {
+          console.error('Failed to parse SSE data:', dataStr, e)
+        }
+      }
+    }
+  }
+
+  return events
+}
+
+function mapEventToSSEEvent(parsed: ParsedSSE): SSEEvent {
+  const { event, data } = parsed
+  return {
+    event: event as SSEEvent['event'],
+    content: data.content as string | undefined,
+    is_final: data.is_final as boolean | undefined,
+    tool: data.tool as string | undefined,
+    input: data.input as Record<string, unknown> | undefined,
+    output: data.output as Record<string, unknown> | undefined,
+    info: data.info as string | undefined,
+    message: data.message as string | undefined,
+    data: data.data as Record<string, unknown> | undefined,
+  }
+}
+
 export async function* streamChat(
   threadId: string,
   message: string,
@@ -47,20 +92,22 @@ export async function* streamChat(
 
       buffer += decoder.decode(value, { stream: true })
       
-      const lines = buffer.split('\n\n')
-      buffer = lines.pop() || ''
-
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          try {
-            const jsonStr = line.slice(6).trim()
-            if (jsonStr) {
-              yield JSON.parse(jsonStr) as SSEEvent
-            }
-          } catch (e) {
-            console.error('Failed to parse SSE event:', line, e)
-          }
+      const lastNewline = buffer.lastIndexOf('\n')
+      if (lastNewline >= 0) {
+        const toProcess = buffer.slice(0, lastNewline)
+        buffer = buffer.slice(lastNewline + 1)
+        
+        const parsedEvents = parseSSE(toProcess)
+        for (const parsed of parsedEvents) {
+          yield mapEventToSSEEvent(parsed)
         }
+      }
+    }
+
+    if (buffer.trim()) {
+      const parsedEvents = parseSSE(buffer)
+      for (const parsed of parsedEvents) {
+        yield mapEventToSSEEvent(parsed)
       }
     }
   } finally {
@@ -99,20 +146,23 @@ export async function* streamResume(
       if (done) break
 
       buffer += decoder.decode(value, { stream: true })
-      const lines = buffer.split('\n\n')
-      buffer = lines.pop() || ''
-
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          try {
-            const jsonStr = line.slice(6).trim()
-            if (jsonStr) {
-              yield JSON.parse(jsonStr) as SSEEvent
-            }
-          } catch (e) {
-            console.error('Failed to parse SSE event:', line, e)
-          }
+      
+      const lastNewline = buffer.lastIndexOf('\n')
+      if (lastNewline >= 0) {
+        const toProcess = buffer.slice(0, lastNewline)
+        buffer = buffer.slice(lastNewline + 1)
+        
+        const parsedEvents = parseSSE(toProcess)
+        for (const parsed of parsedEvents) {
+          yield mapEventToSSEEvent(parsed)
         }
+      }
+    }
+
+    if (buffer.trim()) {
+      const parsedEvents = parseSSE(buffer)
+      for (const parsed of parsedEvents) {
+        yield mapEventToSSEEvent(parsed)
       }
     }
   } finally {
