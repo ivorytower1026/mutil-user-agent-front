@@ -1,0 +1,30 @@
+{
+  "name": "multi-agent-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc -b && vite build",
+    "preview": "vite preview",
+    "type-check": "vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "@mdi/font": "^7.4.47",
+    "axios": "^1.7.9",
+    "highlight.js": "^11.11.1",
+    "marked": "^15.0.6",
+    "pinia": "^2.3.0",
+    "vue": "^3.5.13",
+    "vue-router": "^4.5.0",
+    "vuetify": "^3.7.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.7",
+    "@vitejs/plugin-vue": "^5.2.1",
+    "typescript": "~5.6.3",
+    "vite": "^6.0.7",
+    "vite-plugin-vuetify": "^2.0.4",
+    "vue-tsc": "^2.2.0"
+  }
+}
