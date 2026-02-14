@@ -1,5 +1,5 @@
 <template>
-  <div class="chat-container d-flex flex-column fill-height">
+  <div class="chat-container">
     <MessageList
       :messages="messages"
       :is-streaming="isLoading"
@@ -63,6 +63,10 @@ function handleResumeCancel() {
 
 <style scoped>
 .chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
   background-color: rgb(var(--v-theme-background));
 }
 </style>

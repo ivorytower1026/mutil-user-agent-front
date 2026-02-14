@@ -48,3 +48,16 @@ export interface ApiMessage {
 export interface ResumeRequest {
   action: 'continue' | 'cancel'
 }
+
+export interface ThreadListItem {
+  thread_id: string
+  title: string | null
+  created_at: string
+  message_count: number
+  status: 'idle' | 'interrupted'
+}
+
+export interface ThreadListResponse {
+  threads: ThreadListItem[]
+  total: number
+}

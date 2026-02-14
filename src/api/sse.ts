@@ -57,6 +57,7 @@ function mapEventToSSEEvent(parsed: ParsedSSE): SSEEvent {
     info: data.info as string | undefined,
     message: data.message as string | undefined,
     data: data.data as Record<string, unknown> | undefined,
+    title: data.title as string | undefined,
   }
 }
 

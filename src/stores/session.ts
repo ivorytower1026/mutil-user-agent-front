@@ -3,10 +3,58 @@ import { ref } from 'vue'
 import type { Session } from '@/types/chat'
 import { chatApi } from '@/api'
 
+const PAGE_SIZE = 20
+
 export const useSessionStore = defineStore('session', () => {
   const sessions = ref<Session[]>([])
   const currentThreadId = ref<string | null>(null)
   const isLoading = ref(false)
+  const isLoadingMore = ref(false)
+  const currentPage = ref(1)
+  const total = ref(0)
+  const hasMore = ref(true)
+
+  async function fetchSessions() {
+    isLoading.value = true
+    currentPage.value = 1
+    try {
+      const response = await chatApi.getSessions(currentPage.value, PAGE_SIZE)
+      sessions.value = response.threads.map(t => ({
+        threadId: t.thread_id,
+        title: t.title ?? undefined,
+        createdAt: new Date(t.created_at),
+        updatedAt: new Date(t.created_at),
+        messageCount: t.message_count,
+        status: t.status
+      }))
+      total.value = response.total
+      hasMore.value = sessions.value.length < response.total
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  async function loadMoreSessions() {
+    if (isLoadingMore.value || !hasMore.value) return
+    
+    isLoadingMore.value = true
+    currentPage.value++
+    try {
+      const response = await chatApi.getSessions(currentPage.value, PAGE_SIZE)
+      const newSessions = response.threads.map(t => ({
+        threadId: t.thread_id,
+        title: t.title ?? undefined,
+        createdAt: new Date(t.created_at),
+        updatedAt: new Date(t.created_at),
+        messageCount: t.message_count,
+        status: t.status
+      }))
+      sessions.value.push(...newSessions)
+      hasMore.value = sessions.value.length < response.total
+    } finally {
+      isLoadingMore.value = false
+    }
+  }
 
   async function createSession() {
     isLoading.value = true
@@ -47,13 +95,26 @@ export const useSessionStore = defineStore('session', () => {
     }
   }
 
+  function updateThreadTitle(threadId: string, title: string) {
+    const session = sessions.value.find(s => s.threadId === threadId)
+    if (session) {
+      session.title = title
+      session.updatedAt = new Date()
+    }
+  }
+
   return {
     sessions,
     currentThreadId,
     isLoading,
+    isLoadingMore,
+    hasMore,
+    fetchSessions,
+    loadMoreSessions,
     createSession,
     setCurrentThread,
     updateSessionStatus,
-    incrementMessageCount
+    incrementMessageCount,
+    updateThreadTitle
   }
 })

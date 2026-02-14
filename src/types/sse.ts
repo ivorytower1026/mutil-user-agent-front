@@ -3,6 +3,7 @@ export type SSEEventName =
   | 'tool/start'
   | 'tool/end'
   | 'interrupt'
+  | 'title_updated'
   | 'updates'
   | 'error'
   | 'end'
@@ -17,4 +18,5 @@ export interface SSEEvent {
   info?: string
   message?: string
   data?: Record<string, unknown>
+  title?: string
 }
