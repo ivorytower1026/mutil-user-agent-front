@@ -1,8 +1,11 @@
 <template>
-  <v-app-bar color="surface" elevation="1">
-    <v-app-bar-nav-icon @click="$emit('toggle-drawer')" />
+  <v-app-bar flat class="app-bar">
+    <v-app-bar-nav-icon 
+      variant="text" 
+      @click="$emit('toggle-drawer')" 
+    />
     
-    <AppLogo />
+    <span class="app-title">AI Assistant</span>
     
     <v-spacer />
     
@@ -11,18 +14,19 @@
     <v-menu>
       <template #activator="{ props }">
         <v-btn
-          icon
+          variant="text"
           v-bind="props"
+          class="user-btn"
         >
-          <v-avatar color="primary" size="32">
+          <v-avatar color="#10a37f" size="28">
             <span class="text-white text-caption">{{ userInitial }}</span>
           </v-avatar>
         </v-btn>
       </template>
       
-      <v-list>
-        <v-list-item prepend-icon="mdi-account">
-          <v-list-item-title>{{ username }}</v-list-item-title>
+      <v-list density="compact">
+        <v-list-item>
+          <v-list-item-title class="text-medium-emphasis">{{ username }}</v-list-item-title>
         </v-list-item>
         
         <v-divider />
@@ -41,7 +45,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useAuth } from '@/composables/useAuth'
-import AppLogo from '@/components/common/AppLogo.vue'
 import ThemeToggle from '@/components/common/ThemeToggle.vue'
 
 defineEmits<{
@@ -58,3 +61,29 @@ function handleLogout() {
   logout()
 }
 </script>
+
+<style scoped>
+.app-bar {
+  background-color: #fff !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.app-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.87);
+}
+
+.user-btn {
+  margin-left: 8px;
+}
+
+.v-theme--dark .app-bar {
+  background-color: #212121 !important;
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.v-theme--dark .app-title {
+  color: rgba(255, 255, 255, 0.87);
+}
+</style>

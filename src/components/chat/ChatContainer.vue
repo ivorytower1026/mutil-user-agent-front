@@ -67,6 +67,10 @@ function handleResumeCancel() {
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-  background-color: rgb(var(--v-theme-background));
+  background-color: #fff;
+}
+
+.v-theme--dark .chat-container {
+  background-color: #212121;
 }
 </style>

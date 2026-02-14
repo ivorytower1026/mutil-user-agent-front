@@ -55,7 +55,6 @@ export function useChatStream() {
   }
 
   function handleEvent(event: SSEEvent) {
-    console.log('[SSE] Received event:', event.event, event)
     switch (event.event) {
       case 'messages/partial':
         if (event.content) {
@@ -90,10 +89,8 @@ export function useChatStream() {
         break
 
       case 'title_updated':
-        console.log('[SSE] title_updated event:', event.title, 'threadId:', sessionStore.currentThreadId)
         if (event.title && sessionStore.currentThreadId) {
           sessionStore.updateThreadTitle(sessionStore.currentThreadId, event.title)
-          console.log('[SSE] Title updated to:', event.title)
         }
         break
 

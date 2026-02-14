@@ -13,3 +13,4 @@ logs/
 .env
 
 node_modules/
+tmp_images/

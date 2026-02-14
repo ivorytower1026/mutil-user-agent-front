@@ -1,16 +1,21 @@
 <template>
   <div ref="listRef" class="message-list">
     <div v-if="messages.length === 0" class="empty-state">
-      <v-icon size="64" color="grey-lighten-1">mdi-chat-outline</v-icon>
-      <p class="text-medium-emphasis mt-4">开始一个新对话</p>
+      <div class="empty-icon">
+        <v-icon size="48" color="grey-lighten-1">mdi-chat-outline</v-icon>
+      </div>
+      <h2 class="empty-title">开始一个新对话</h2>
+      <p class="empty-subtitle">输入消息开始与 AI 交流</p>
     </div>
     
-    <MessageItem
-      v-for="(message, index) in messages"
-      :key="message.id"
-      :message="message"
-      :is-streaming="isStreaming && index === messages.length - 1"
-    />
+    <template v-else>
+      <MessageItem
+        v-for="(message, index) in messages"
+        :key="message.id"
+        :message="message"
+        :is-streaming="isStreaming && index === messages.length - 1"
+      />
+    </template>
   </div>
 </template>
 
@@ -61,5 +66,41 @@ watch(
   align-items: center;
   justify-content: center;
   padding: 48px;
+}
+
+.empty-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.04);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.empty-title {
+  font-size: 20px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.87);
+  margin: 0 0 8px 0;
+}
+
+.empty-subtitle {
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.5);
+  margin: 0;
+}
+
+.v-theme--dark .empty-icon {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+.v-theme--dark .empty-title {
+  color: rgba(255, 255, 255, 0.87);
+}
+
+.v-theme--dark .empty-subtitle {
+  color: rgba(255, 255, 255, 0.5);
 }
 </style>

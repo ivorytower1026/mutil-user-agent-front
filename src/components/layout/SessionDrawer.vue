@@ -1,60 +1,57 @@
 <template>
   <v-navigation-drawer
     :model-value="modelValue"
-    :width="280"
+    :width="260"
     fixed
+    class="session-drawer"
     @update:model-value="$emit('update:modelValue', $event)"
   >
     <div class="drawer-content">
       <div class="drawer-header">
-        <v-list density="compact" nav>
-          <v-list-item
-            color="primary"
-            prepend-icon="mdi-plus"
-            title="新对话"
-            @click="handleCreateSession"
-          />
-        </v-list>
-        <v-divider />
-        <v-list-subheader>会话列表</v-list-subheader>
+        <button class="new-chat-btn" @click="handleCreateSession">
+          <v-icon size="18">mdi-plus</v-icon>
+          <span>新对话</span>
+        </button>
       </div>
       
       <div ref="scrollContainer" class="drawer-scroll" @scroll="handleScroll">
-        <v-list v-if="sessions.length > 0" density="compact" nav>
-          <v-list-item
+        <div class="session-list">
+          <div
             v-for="session in sessions"
             :key="session.threadId"
-            :active="session.threadId === currentThreadId"
-            color="primary"
+            class="session-item"
+            :class="{ active: session.threadId === currentThreadId }"
             @click="handleSelectSession(session.threadId)"
           >
-            <template #prepend>
-              <v-icon :color="session.status === 'interrupted' ? 'warning' : 'default'">
-                {{ session.status === 'interrupted' ? 'mdi-pause-circle' : 'mdi-chat-outline' }}
-              </v-icon>
-            </template>
-            
-            <v-list-item-title class="text-truncate">
-              {{ session.title || `对话 ${session.threadId.slice(0, 8)}...` }}
-            </v-list-item-title>
-            
-            <v-list-item-subtitle>
-              {{ session.messageCount }} 条消息
-            </v-list-item-subtitle>
-          </v-list-item>
-        </v-list>
-        
-        <div v-if="isLoadingMore" class="pa-4 text-center">
-          <v-progress-circular indeterminate size="24" />
+            <v-icon 
+              size="18" 
+              :color="session.status === 'interrupted' ? 'warning' : 'default'"
+              class="session-icon"
+            >
+              {{ session.status === 'interrupted' ? 'mdi-pause-circle' : 'mdi-chat-outline' }}
+            </v-icon>
+            <div class="session-info">
+              <div class="session-title">
+                {{ session.title || '新对话' }}
+              </div>
+              <div class="session-meta">
+                {{ session.messageCount }} 条消息
+              </div>
+            </div>
+          </div>
         </div>
         
-        <div v-if="!hasMore && sessions.length > 0" class="pa-2 text-center text-caption text-medium-emphasis">
+        <div v-if="isLoadingMore" class="loading-more">
+          <v-progress-circular indeterminate size="20" width="2" />
+        </div>
+        
+        <div v-if="!hasMore && sessions.length > 0" class="no-more">
           没有更多了
         </div>
         
-        <div v-if="sessions.length === 0 && !isLoading" class="pa-4 text-center text-medium-emphasis">
-          <v-icon size="48" color="grey-lighten-1">mdi-chat-plus-outline</v-icon>
-          <p class="mt-2">暂无会话</p>
+        <div v-if="sessions.length === 0 && !isLoading" class="empty-state">
+          <v-icon size="40" color="grey-lighten-1">mdi-chat-outline</v-icon>
+          <p>暂无会话</p>
         </div>
       </div>
     </div>
@@ -119,7 +116,26 @@ function handleScroll() {
 }
 
 .drawer-header {
-  flex-shrink: 0;
+  padding: 12px;
+}
+
+.new-chat-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.8);
+  transition: background-color 0.15s;
+}
+
+.new-chat-btn:hover {
+  background-color: rgba(0, 0, 0, 0.04);
 }
 
 .drawer-scroll {
@@ -127,5 +143,115 @@ function handleScroll() {
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
+}
+
+.session-list {
+  padding: 4px 8px;
+}
+
+.session-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.session-item:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.session-item.active {
+  background-color: rgba(0, 0, 0, 0.06);
+}
+
+.session-icon {
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.session-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.session-title {
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.session-meta {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.4);
+  margin-top: 2px;
+}
+
+.loading-more {
+  display: flex;
+  justify-content: center;
+  padding: 16px;
+}
+
+.no-more {
+  text-align: center;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.3);
+  padding: 12px;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  color: rgba(0, 0, 0, 0.4);
+}
+
+.empty-state p {
+  margin-top: 12px;
+  font-size: 14px;
+}
+
+.v-theme--dark .session-drawer {
+  background-color: #171717 !important;
+}
+
+.v-theme--dark .new-chat-btn {
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.v-theme--dark .new-chat-btn:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+.v-theme--dark .session-item:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+.v-theme--dark .session-item.active {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.v-theme--dark .session-title {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.v-theme--dark .session-meta {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.v-theme--dark .no-more {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.v-theme--dark .empty-state {
+  color: rgba(255, 255, 255, 0.4);
 }
 </style>
