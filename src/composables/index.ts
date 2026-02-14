@@ -1,3 +1,5 @@
 export { useAuth } from './useAuth'
 export { useChatStream } from './useChatStream'
 export { useAppTheme } from './useTheme'
+export { useWebDAV } from './useWebDAV'
+export { useFileUpload } from './useFileUpload'

@@ -9,6 +9,22 @@
     
     <v-spacer />
     
+    <v-btn
+      variant="text"
+      class="file-btn"
+      @click="$emit('toggle-files')"
+    >
+      <v-badge
+        v-if="uploadingCount > 0"
+        :content="uploadingCount"
+        color="error"
+        floating
+      >
+        <v-icon>mdi-folder-outline</v-icon>
+      </v-badge>
+      <v-icon v-else>mdi-folder-outline</v-icon>
+    </v-btn>
+    
     <ThemeToggle />
     
     <v-menu>
@@ -45,17 +61,22 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useAuth } from '@/composables/useAuth'
+import { useFileStore } from '@/stores/file'
 import ThemeToggle from '@/components/common/ThemeToggle.vue'
 
 defineEmits<{
   'toggle-drawer': []
+  'toggle-files': []
 }>()
 
 const { username, logout } = useAuth()
+const fileStore = useFileStore()
 
 const userInitial = computed(() => {
   return username.value ? username.value.charAt(0).toUpperCase() : 'U'
 })
+
+const uploadingCount = computed(() => fileStore.uploadingCount)
 
 function handleLogout() {
   logout()
@@ -74,6 +95,7 @@ function handleLogout() {
   color: rgba(0, 0, 0, 0.87);
 }
 
+.file-btn,
 .user-btn {
   margin-left: 8px;
 }
