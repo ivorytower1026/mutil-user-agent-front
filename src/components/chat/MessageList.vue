@@ -4,8 +4,8 @@
       <div class="empty-icon">
         <v-icon size="48" color="grey-lighten-1">mdi-chat-outline</v-icon>
       </div>
-      <h2 class="empty-title">开始一个新对话</h2>
-      <p class="empty-subtitle">输入消息开始与 AI 交流</p>
+      <h2 class="empty-title">{{ hasThread ? '开始对话' : '选择或创建对话' }}</h2>
+      <p class="empty-subtitle">{{ hasThread ? '输入消息开始与 AI 交流' : '从左侧选择一个对话，或点击"新对话"开始' }}</p>
     </div>
     
     <template v-else>
@@ -27,6 +27,7 @@ import MessageItem from './MessageItem.vue'
 const props = defineProps<{
   messages: Message[]
   isStreaming?: boolean
+  hasThread?: boolean
 }>()
 
 const listRef = ref<HTMLElement | null>(null)

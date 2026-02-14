@@ -4,7 +4,7 @@
     :width="260"
     fixed
     class="session-drawer"
-    @update:model-value="$emit('update:modelValue', $event)"
+    @update:model-value="emit('update:modelValue', $event)"
   >
     <div class="drawer-content">
       <div class="drawer-header">
@@ -69,7 +69,6 @@ defineProps<{
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
-  'session-created': [threadId: string]
 }>()
 
 const sessionStore = useSessionStore()
@@ -81,15 +80,18 @@ const currentThreadId = computed(() => sessionStore.currentThreadId)
 const isLoadingMore = computed(() => sessionStore.isLoadingMore)
 const hasMore = computed(() => sessionStore.hasMore)
 const isLoading = computed(() => sessionStore.isLoading)
+const isPendingNewSession = computed(() => sessionStore.isPendingNewSession)
 
-onMounted(() => {
-  sessionStore.fetchSessions()
+onMounted(async () => {
+  await sessionStore.fetchSessions()
+  if (sessions.value.length > 0 && !currentThreadId.value && !isPendingNewSession.value) {
+    handleSelectSession(sessions.value[0].threadId)
+  }
 })
 
-async function handleCreateSession() {
-  const threadId = await sessionStore.createSession()
+function handleCreateSession() {
+  sessionStore.startNewSession()
   chatStore.clearMessages()
-  emit('session-created', threadId)
 }
 
 function handleSelectSession(threadId: string) {

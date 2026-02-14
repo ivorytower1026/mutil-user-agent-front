@@ -13,6 +13,7 @@ export const useSessionStore = defineStore('session', () => {
   const currentPage = ref(1)
   const total = ref(0)
   const hasMore = ref(true)
+  const isPendingNewSession = ref(false)
 
   async function fetchSessions() {
     isLoading.value = true
@@ -69,14 +70,21 @@ export const useSessionStore = defineStore('session', () => {
       }
       sessions.value.unshift(newSession)
       currentThreadId.value = response.thread_id
+      isPendingNewSession.value = false
       return response.thread_id
     } finally {
       isLoading.value = false
     }
   }
 
+  function startNewSession() {
+    currentThreadId.value = null
+    isPendingNewSession.value = true
+  }
+
   function setCurrentThread(threadId: string) {
     currentThreadId.value = threadId
+    isPendingNewSession.value = false
   }
 
   function updateSessionStatus(threadId: string, status: 'idle' | 'interrupted') {
@@ -109,9 +117,11 @@ export const useSessionStore = defineStore('session', () => {
     isLoading,
     isLoadingMore,
     hasMore,
+    isPendingNewSession,
     fetchSessions,
     loadMoreSessions,
     createSession,
+    startNewSession,
     setCurrentThread,
     updateSessionStatus,
     incrementMessageCount,

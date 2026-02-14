@@ -3,6 +3,7 @@
     <MessageList
       :messages="messages"
       :is-streaming="isLoading"
+      :has-thread="!!currentThreadId || isPendingNewSession"
     />
     
     <InterruptDialog
@@ -36,15 +37,23 @@ const { sendMessage, resumeInterrupt } = useChatStream()
 const messages = computed(() => chatStore.messages)
 const isLoading = computed(() => chatStore.isLoading)
 const interrupt = computed(() => chatStore.interrupt)
+const currentThreadId = computed(() => sessionStore.currentThreadId)
+const isPendingNewSession = computed(() => sessionStore.isPendingNewSession)
 
 const showInterruptDialog = computed({
   get: () => !!chatStore.interrupt,
   set: () => chatStore.clearInterrupt()
 })
 
-function handleSend(message: string) {
-  if (sessionStore.currentThreadId) {
-    sendMessage(sessionStore.currentThreadId, message)
+async function handleSend(message: string) {
+  let threadId = sessionStore.currentThreadId
+  
+  if (!threadId) {
+    threadId = await sessionStore.createSession()
+  }
+  
+  if (threadId) {
+    sendMessage(threadId, message)
   }
 }
 
