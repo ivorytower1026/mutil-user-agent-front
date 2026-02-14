@@ -1,71 +1,81 @@
 <template>
-  <v-form ref="formRef" v-model="isValid" @submit.prevent="handleSubmit">
-    <v-text-field
-      v-model="formData.username"
-      label="用户名"
-      prepend-inner-icon="mdi-account"
-      :rules="[rules.required, rules.minLength]"
-      variant="outlined"
-      class="mb-3"
-    />
-    <v-text-field
-      v-model="formData.password"
-      label="密码"
-      prepend-inner-icon="mdi-lock"
-      :rules="[rules.required, rules.passwordMinLength]"
-      :type="showPassword ? 'text' : 'password'"
-      :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
-      variant="outlined"
-      class="mb-3"
-      @click:append-inner="showPassword = !showPassword"
-    />
-    <v-text-field
-      v-model="formData.confirmPassword"
-      label="确认密码"
-      prepend-inner-icon="mdi-lock-check"
-      :rules="[rules.required, rules.passwordMatch]"
-      :type="showConfirmPassword ? 'text' : 'password'"
-      :append-inner-icon="showConfirmPassword ? 'mdi-eye-off' : 'mdi-eye'"
-      variant="outlined"
-      class="mb-3"
-      @click:append-inner="showConfirmPassword = !showConfirmPassword"
-    />
-    <v-alert
-      v-if="errorMessage"
-      type="error"
-      variant="tonal"
-      class="mb-3"
-      closable
-      @click:close="errorMessage = ''"
-    >
+  <form class="auth-form" @submit.prevent="handleSubmit">
+    <div class="form-group">
+      <label class="form-label">用户名</label>
+      <input
+        v-model="formData.username"
+        type="text"
+        class="form-input"
+        placeholder="输入用户名"
+        autocomplete="username"
+      />
+    </div>
+    
+    <div class="form-group">
+      <label class="form-label">密码</label>
+      <div class="password-input">
+        <input
+          v-model="formData.password"
+          :type="showPassword ? 'text' : 'password'"
+          class="form-input"
+          placeholder="至少6个字符"
+          autocomplete="new-password"
+        />
+        <button 
+          type="button" 
+          class="password-toggle"
+          @click="showPassword = !showPassword"
+        >
+          <v-icon size="18">{{ showPassword ? 'mdi-eye-off' : 'mdi-eye' }}</v-icon>
+        </button>
+      </div>
+    </div>
+    
+    <div class="form-group">
+      <label class="form-label">确认密码</label>
+      <div class="password-input">
+        <input
+          v-model="formData.confirmPassword"
+          :type="showConfirmPassword ? 'text' : 'password'"
+          class="form-input"
+          placeholder="再次输入密码"
+          autocomplete="new-password"
+        />
+        <button 
+          type="button" 
+          class="password-toggle"
+          @click="showConfirmPassword = !showConfirmPassword"
+        >
+          <v-icon size="18">{{ showConfirmPassword ? 'mdi-eye-off' : 'mdi-eye' }}</v-icon>
+        </button>
+      </div>
+    </div>
+    
+    <div v-if="errorMessage" class="error-message">
       {{ errorMessage }}
-    </v-alert>
-    <v-btn
-      type="submit"
-      color="primary"
-      block
-      size="large"
-      :loading="loading"
-      :disabled="!isValid"
+    </div>
+    
+    <button 
+      type="submit" 
+      class="submit-btn"
+      :disabled="loading || !isFormValid"
     >
-      注册
-    </v-btn>
-  </v-form>
+      <v-progress-circular v-if="loading" indeterminate size="18" color="white" />
+      <span v-else>注册</span>
+    </button>
+  </form>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 
 const emit = defineEmits<{
   success: []
-  switchToLogin: []
 }>()
 
 const { register } = useAuth()
 
-const formRef = ref()
-const isValid = ref(false)
 const loading = ref(false)
 const showPassword = ref(false)
 const showConfirmPassword = ref(false)
@@ -77,15 +87,16 @@ const formData = reactive({
   confirmPassword: ''
 })
 
-const rules = {
-  required: (v: string) => !!v || '此字段必填',
-  minLength: (v: string) => v.length >= 3 || '用户名至少3个字符',
-  passwordMinLength: (v: string) => v.length >= 6 || '密码至少6个字符',
-  passwordMatch: (v: string) => v === formData.password || '两次密码不一致'
-}
+const isFormValid = computed(() => {
+  return (
+    formData.username.trim().length >= 3 &&
+    formData.password.length >= 6 &&
+    formData.confirmPassword === formData.password
+  )
+})
 
 async function handleSubmit() {
-  if (!isValid.value) return
+  if (!isFormValid.value) return
   
   loading.value = true
   errorMessage.value = ''
@@ -107,3 +118,140 @@ async function handleSubmit() {
   }
 }
 </script>
+
+<style scoped>
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #24292f;
+}
+
+.form-input {
+  width: 100%;
+  padding: 6px 12px;
+  font-size: 14px;
+  line-height: 20px;
+  color: #24292f;
+  background-color: #fff;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.form-input::placeholder {
+  color: #8b949e;
+}
+
+.form-input:focus {
+  border-color: #10a37f;
+  box-shadow: 0 0 0 3px rgba(16, 163, 127, 0.15);
+}
+
+.password-input {
+  position: relative;
+}
+
+.password-input .form-input {
+  padding-right: 36px;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 4px;
+  color: #57606a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.password-toggle:hover {
+  color: #24292f;
+}
+
+.error-message {
+  padding: 10px 12px;
+  font-size: 13px;
+  color: #cf222e;
+  background-color: #ffebe9;
+  border: 1px solid #ff818266;
+  border-radius: 6px;
+}
+
+.submit-btn {
+  width: 100%;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #fff;
+  background-color: #10a37f;
+  border: 1px solid rgba(240, 246, 252, 0.1);
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  transition: background-color 0.15s;
+}
+
+.submit-btn:hover:not(:disabled) {
+  background-color: #0d8a6a;
+}
+
+.submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.v-theme--dark .form-label {
+  color: #f0f6fc;
+}
+
+.v-theme--dark .form-input {
+  color: #f0f6fc;
+  background-color: #0d1117;
+  border-color: #30363d;
+}
+
+.v-theme--dark .form-input::placeholder {
+  color: #6e7681;
+}
+
+.v-theme--dark .form-input:focus {
+  border-color: #10a37f;
+  box-shadow: 0 0 0 3px rgba(16, 163, 127, 0.2);
+}
+
+.v-theme--dark .password-toggle {
+  color: #8b949e;
+}
+
+.v-theme--dark .password-toggle:hover {
+  color: #f0f6fc;
+}
+
+.v-theme--dark .error-message {
+  color: #ff7b72;
+  background-color: rgba(248, 81, 73, 0.1);
+  border-color: rgba(248, 81, 73, 0.4);
+}
+</style>
