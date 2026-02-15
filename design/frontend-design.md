@@ -1549,7 +1549,15 @@ export default defineConfig({
     "axios": "^1.6.0",
     "marked": "^12.0.0",
     "highlight.js": "^11.9.0",
-    "@mdi/font": "^7.4.0"
+    "@mdi/font": "^7.4.0",
+    "vue-codemirror": "^6.0.0",
+    "@codemirror/lang-javascript": "^6.0.0",
+    "@codemirror/lang-python": "^6.0.0",
+    "@codemirror/lang-markdown": "^6.0.0",
+    "@codemirror/lang-html": "^6.0.0",
+    "@codemirror/lang-css": "^6.0.0",
+    "@codemirror/lang-json": "^6.0.0",
+    "@codemirror/theme-one-dark": "^6.0.0"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.0",
@@ -1560,3 +1568,258 @@ export default defineConfig({
   }
 }
 ```
+
+---
+
+## 13. 文件预览与编辑功能
+
+> 更新时间: 2026-02-15
+
+### 13.1 功能概述
+
+文件预览组件支持以下文件类型：
+- **图片**: `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.svg`, `.bmp`
+- **PDF**: `.pdf`
+- **文本**: `.txt`, `.md`, `.py`, `.js`, `.ts`, `.jsx`, `.tsx`, `.html`, `.htm`, `.css`, `.json`, `.xml`, `.yaml`, `.yml`, `.sh`, `.bat`, `.log`, `.ini`, `.conf`, `.env`
+
+### 13.2 文件预览认证方案
+
+#### 问题背景
+
+原始实现中，图片和 PDF 预览通过 URL 查询参数传递 token：
+```javascript
+// ❌ 问题代码
+const previewUrl = `${url}?token=${encodeURIComponent(token)}`
+```
+
+这种方式存在以下问题：
+1. 后端返回 401 错误（后端不支持 URL 参数认证）
+2. Token 暴露在 URL 中，存在安全隐患
+
+#### 解决方案
+
+改用 `fetch` + `Blob` + `URL.createObjectURL` 方式：
+
+```javascript
+// ✅ 正确实现
+async function loadImageContent() {
+  const blob = await downloadFile(props.file.path)  // downloadFile 使用 Authorization header
+  const typedBlob = new Blob([blob], { type: 'image/png' })
+  imageBlobUrl.value = URL.createObjectURL(typedBlob)
+}
+```
+
+#### 关键点
+
+1. **MIME Type 必须正确设置**：
+   - PDF: `application/pdf`
+   - 图片: 根据扩展名设置对应的 MIME type
+
+2. **内存管理**：对话框关闭时必须调用 `URL.revokeObjectURL()` 释放 blob URL
+
+```javascript
+watch(() => props.modelValue, (val) => {
+  if (!val) {
+    if (pdfBlobUrl.value) {
+      URL.revokeObjectURL(pdfBlobUrl.value)
+      pdfBlobUrl.value = ''
+    }
+    if (imageBlobUrl.value) {
+      URL.revokeObjectURL(imageBlobUrl.value)
+      imageBlobUrl.value = ''
+    }
+  }
+})
+```
+
+### 13.3 CodeMirror 文本编辑器集成
+
+#### 安装依赖
+
+```bash
+npm install vue-codemirror \
+  @codemirror/lang-javascript \
+  @codemirror/lang-python \
+  @codemirror/lang-markdown \
+  @codemirror/lang-html \
+  @codemirror/lang-css \
+  @codemirror/lang-json \
+  @codemirror/theme-one-dark
+```
+
+#### 语言支持配置
+
+```typescript
+import { Codemirror } from 'vue-codemirror'
+import { javascript } from '@codemirror/lang-javascript'
+import { python } from '@codemirror/lang-python'
+import { markdown } from '@codemirror/lang-markdown'
+import { html } from '@codemirror/lang-html'
+import { css } from '@codemirror/lang-css'
+import { json } from '@codemirror/lang-json'
+import { oneDark } from '@codemirror/theme-one-dark'
+
+const extensions = computed(() => {
+  const ext = props.file.name.split('.').pop()?.toLowerCase() || ''
+  const langMap: Record<string, unknown> = {
+    js: javascript(),
+    jsx: javascript({ jsx: true }),
+    ts: javascript({ typescript: true }),
+    tsx: javascript({ jsx: true, typescript: true }),
+    py: python(),
+    md: markdown(),
+    html: html(),
+    htm: html(),
+    css: css(),
+    json: json()
+  }
+  const langExt = langMap[ext] || javascript()
+  return [langExt, oneDark]
+})
+```
+
+#### 保存功能
+
+```typescript
+async function handleSave() {
+  if (!props.file || saving.value) return
+  
+  saving.value = true
+  
+  try {
+    await uploadFile(props.file.path, textContent.value)
+    notification.success('保存成功')
+  } catch (e) {
+    notification.error('保存失败')
+  } finally {
+    saving.value = false
+  }
+}
+```
+
+#### 快捷键支持
+
+```vue
+<v-dialog @keydown.ctrl.s.prevent="handleSave">
+```
+
+### 13.4 全局通知组件
+
+#### Store 定义 (`src/stores/notification.ts`)
+
+```typescript
+import { ref } from 'vue'
+
+const show = ref(false)
+const message = ref('')
+const color = ref<'success' | 'error' | 'warning' | 'info'>('success')
+
+export function useNotification() {
+  function notify(msg: string, type: 'success' | 'error' | 'warning' | 'info' = 'success') {
+    message.value = msg
+    color.value = type
+    show.value = true
+  }
+
+  function success(msg: string) { notify(msg, 'success') }
+  function error(msg: string) { notify(msg, 'error') }
+  function warning(msg: string) { notify(msg, 'warning') }
+  function info(msg: string) { notify(msg, 'info') }
+  function close() { show.value = false }
+
+  return { show, message, color, notify, success, error, warning, info, close }
+}
+```
+
+#### 组件定义 (`src/components/common/AppSnackbar.vue`)
+
+```vue
+<template>
+  <v-snackbar
+    v-model="show"
+    :color="color"
+    :timeout="2000"
+    location="top center"
+  >
+    {{ message }}
+  </v-snackbar>
+</template>
+
+<script setup lang="ts">
+import { useNotification } from '@/stores/notification'
+const { show, message, color } = useNotification()
+</script>
+```
+
+#### 在 App.vue 中注册
+
+```vue
+<template>
+  <v-app>
+    <router-view />
+    <AppSnackbar />
+  </v-app>
+</template>
+```
+
+### 13.5 FilePreview 组件完整结构
+
+```
+FilePreview.vue
+├── v-dialog (max-width: 1200, max-height: 95vh)
+│   ├── v-card
+│   │   ├── v-card-title
+│   │   │   ├── 文件名
+│   │   │   ├── 保存按钮 (仅文本文件)
+│   │   │   ├── 下载按钮
+│   │   │   └── 关闭按钮
+│   │   │
+│   │   └── v-card-text.preview-content (padding: 0)
+│   │       ├── loading-state (加载中)
+│   │       ├── error-state (错误)
+│   │       ├── img (图片预览)
+│   │       ├── iframe (PDF预览)
+│   │       ├── Codemirror (文本编辑)
+│   │       └── unsupported-state (不支持类型)
+│   │
+│   └── AppSnackbar (全局通知，在 App.vue 中)
+```
+
+### 13.6 样式要点
+
+```css
+.preview-content {
+  min-height: 400px;
+  max-height: calc(95vh - 100px);
+  overflow: hidden;
+  padding: 0 !important;  /* 移除默认 padding，让内容占满 */
+}
+
+.preview-content.has-text {
+  align-items: flex-start;  /* 文本编辑器从顶部开始，不居中 */
+}
+
+.preview-editor {
+  width: 100%;
+  height: calc(95vh - 100px);
+  overflow: hidden;
+}
+
+.preview-editor :deep(.cm-editor) {
+  height: 100%;
+}
+
+.preview-editor :deep(.cm-scroller) {
+  overflow: auto;
+}
+```
+
+### 13.7 相关文件列表
+
+| 文件路径 | 说明 |
+|---------|------|
+| `src/components/file/FilePreview.vue` | 文件预览/编辑主组件 |
+| `src/stores/notification.ts` | 全局通知 store |
+| `src/components/common/AppSnackbar.vue` | 全局通知组件 |
+| `src/api/webdav.ts` | WebDAV 文件操作 API |
+| `src/types/file.ts` | 文件相关类型定义 |
