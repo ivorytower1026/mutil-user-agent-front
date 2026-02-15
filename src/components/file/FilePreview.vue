@@ -1,9 +1,10 @@
 <template>
   <v-dialog
     :model-value="modelValue"
-    max-width="800"
-    max-height="90vh"
+    max-width="1200"
+    max-height="95vh"
     @update:model-value="$emit('update:model-value', $event)"
+    @keydown.ctrl.s.prevent="handleSave"
   >
     <v-card v-if="file">
       <v-card-title class="d-flex align-center">
@@ -30,7 +31,7 @@
       
       <v-divider />
       
-      <v-card-text class="preview-content">
+      <v-card-text class="preview-content" :class="{ 'has-text': previewType === 'text' }">
         <div v-if="loading" class="loading-state">
           <v-progress-circular indeterminate />
         </div>
@@ -85,6 +86,7 @@ import { oneDark } from '@codemirror/theme-one-dark'
 import type { FileItem } from '@/types/file'
 import { isImage, isTextFile } from '@/types/file'
 import { downloadFile, uploadFile } from '@/api/webdav'
+import { useNotification } from '@/stores/notification'
 
 const props = defineProps<{
   modelValue: boolean
@@ -102,6 +104,8 @@ const error = ref('')
 const textContent = ref('')
 const pdfBlobUrl = ref('')
 const imageBlobUrl = ref('')
+
+const notification = useNotification()
 
 const extensions = computed(() => {
   if (!props.file) return []
@@ -227,12 +231,12 @@ async function handleSave() {
   if (!props.file || saving.value) return
   
   saving.value = true
-  error.value = ''
   
   try {
     await uploadFile(props.file.path, textContent.value)
+    notification.success('保存成功')
   } catch (e) {
-    error.value = '保存失败'
+    notification.error('保存失败')
   } finally {
     saving.value = false
   }
@@ -241,12 +245,16 @@ async function handleSave() {
 
 <style scoped>
 .preview-content {
-  min-height: 300px;
-  max-height: calc(90vh - 120px);
+  min-height: 400px;
+  max-height: calc(95vh - 120px);
   overflow: auto;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.preview-content.has-text {
+  align-items: flex-start;
 }
 
 .loading-state,
@@ -262,20 +270,20 @@ async function handleSave() {
 
 .preview-image {
   max-width: 100%;
-  max-height: calc(90vh - 150px);
+  max-height: calc(95vh - 150px);
   object-fit: contain;
 }
 
 .preview-pdf {
   width: 100%;
-  height: calc(90vh - 150px);
+  height: calc(95vh - 150px);
   border: none;
 }
 
 .preview-editor {
   width: 100%;
-  height: calc(90vh - 150px);
-  overflow: auto;
+  height: calc(95vh - 150px);
+  overflow: hidden;
 }
 
 .preview-editor :deep(.cm-editor) {

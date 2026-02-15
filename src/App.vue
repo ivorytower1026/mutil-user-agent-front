@@ -1,10 +1,12 @@
 <template>
   <v-app>
     <router-view />
+    <AppSnackbar />
   </v-app>
 </template>
 
 <script setup lang="ts">
+import AppSnackbar from '@/components/common/AppSnackbar.vue'
 </script>
 
 <style>
