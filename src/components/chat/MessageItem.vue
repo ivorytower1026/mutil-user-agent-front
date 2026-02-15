@@ -1,10 +1,6 @@
 <template>
   <div class="message-item" :class="message.role">
     <div class="message-content">
-      <div v-if="message.role === 'assistant'" class="avatar assistant-avatar">
-        <v-icon size="18" color="white">mdi-robot</v-icon>
-      </div>
-      
       <div class="message-body">
         <div class="message-text">
           <MarkdownRenderer 
@@ -51,20 +47,6 @@ withDefaults(defineProps<{
   max-width: 768px;
   margin: 0 auto;
   padding: 0 24px;
-}
-
-.avatar {
-  flex-shrink: 0;
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.assistant-avatar {
-  background-color: #10a37f;
 }
 
 .message-body {
