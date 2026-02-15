@@ -69,7 +69,7 @@ withDefaults(defineProps<{
 }
 
 .message-item.user .message-text {
-  background-color: #f4f4f4;
+  background-color: #eeecec;
   padding: 10px 16px;
   border-radius: 18px;
   max-width: 85%;
@@ -80,6 +80,6 @@ withDefaults(defineProps<{
 }
 
 .v-theme--dark .message-item.user .message-text {
-  background-color: #3a3a3a;
+  background-color: #4f4e4e;
 }
 </style>
