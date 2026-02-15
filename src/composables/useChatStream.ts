@@ -98,6 +98,7 @@ export function useChatStream() {
         break
 
       case 'end':
+        chatStore.markSegmentEnd()
         if (sessionStore.currentThreadId) {
           sessionStore.updateSessionStatus(sessionStore.currentThreadId, 'idle')
         }

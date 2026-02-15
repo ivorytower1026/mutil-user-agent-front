@@ -13,6 +13,7 @@ export const useChatStore = defineStore('chat', () => {
   const isLoading = ref(false)
   const error = ref<string | null>(null)
   const streamingContent = ref('')
+  const needsNewline = ref(false)
 
   function addUserMessage(content: string) {
     messages.value.push({
@@ -25,6 +26,7 @@ export const useChatStore = defineStore('chat', () => {
 
   function startAssistantMessage() {
     streamingContent.value = ''
+    needsNewline.value = false
     messages.value.push({
       id: generateId(),
       role: 'assistant',
@@ -34,11 +36,19 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   function appendAssistantContent(chunk: string) {
+    if (needsNewline.value && streamingContent.value) {
+      streamingContent.value += '\n\n'
+      needsNewline.value = false
+    }
     streamingContent.value += chunk
     const lastMessage = messages.value[messages.value.length - 1]
     if (lastMessage && lastMessage.role === 'assistant') {
       lastMessage.content = streamingContent.value
     }
+  }
+
+  function markSegmentEnd() {
+    needsNewline.value = true
   }
 
   function addToolCall(toolCall: { name: string }) {
@@ -119,6 +129,7 @@ export const useChatStore = defineStore('chat', () => {
     setLoading,
     setError,
     clearMessages,
-    loadHistory
+    loadHistory,
+    markSegmentEnd
   }
 })
