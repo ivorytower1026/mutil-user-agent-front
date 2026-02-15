@@ -1,5 +1,6 @@
 import { createClient, WebDAVClient } from 'webdav'
 import type { FileItem } from '@/types/file'
+import { useAuthStore } from '@/stores/auth'
 
 let client: WebDAVClient | null = null
 
@@ -26,20 +27,25 @@ export function resetWebDAVClient(): void {
 export async function listDirectory(path: string): Promise<FileItem[]> {
   const dav = getWebDAVClient()
   const items = await dav.getDirectoryContents(path)
-  
+
   if (!Array.isArray(items)) {
     return []
   }
-  
-  return items.map((item) => ({
-    name: item.basename,
-    path: item.filename,
-    type: item.type as 'file' | 'directory',
-    size: item.type === 'file' ? item.size : null,
-    modified: item.lastmod,
-    etag: item.etag || null,
-    mimeType: item.mime || undefined
-  }))
+
+  const userId = useAuthStore().userId
+  const userPrefix = `/${userId}`
+
+  return items
+    .filter((item) => item.filename !== userPrefix)
+    .map((item) => ({
+      name: item.basename,
+      path: item.filename.replace(userPrefix, '') || '/',
+      type: item.type as 'file' | 'directory',
+      size: item.type === 'file' ? item.size : null,
+      modified: item.lastmod,
+      etag: item.etag || null,
+      mimeType: item.mime || undefined
+    }))
 }
 
 export async function createDirectory(path: string): Promise<boolean> {
