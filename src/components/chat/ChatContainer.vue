@@ -10,8 +10,11 @@
       :is-loading="isLoading"
       :interrupt="interrupt"
       :disabled="isLoading"
+      :pending-files="pendingFiles"
       @send="handleSend"
       @resume="handleResume"
+      @add-files="addFiles"
+      @remove-file="removeFile"
     />
   </div>
 </template>
@@ -26,7 +29,7 @@ import ChatInput from './ChatInput.vue'
 
 const chatStore = useChatStore()
 const sessionStore = useSessionStore()
-const { sendMessage, resumeInterrupt } = useChatStream()
+const { sendMessage, resumeInterrupt, pendingFiles, addFiles, removeFile } = useChatStream()
 
 const messages = computed(() => chatStore.messages)
 const isLoading = computed(() => chatStore.isLoading)

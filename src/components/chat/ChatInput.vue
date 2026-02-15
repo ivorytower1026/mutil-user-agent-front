@@ -51,7 +51,7 @@
             v-else 
             size="14" 
             class="remove-btn" 
-            @click="removeFile(index)"
+            @click="$emit('removeFile', index)"
           >
             mdi-close
           </v-icon>
@@ -102,27 +102,29 @@
 import { ref, nextTick, watch } from 'vue'
 import type { Interrupt } from '@/types/chat'
 import InterruptDetail from '@/components/interrupt/InterruptDetail.vue'
-import { useChatStream } from '@/composables/useChatStream'
 import { MAX_FILE_COUNT, MAX_FILE_SIZE } from '@/types/file'
+import type { PendingFile } from '@/composables/useChatStream'
 
 const props = withDefaults(defineProps<{
   disabled?: boolean
   placeholder?: string
   isLoading?: boolean
   interrupt?: Interrupt | null
+  pendingFiles?: PendingFile[]
 }>(), {
   disabled: false,
   placeholder: '给 AI 发送消息',
   isLoading: false,
-  interrupt: null
+  interrupt: null,
+  pendingFiles: () => []
 })
 
 const emit = defineEmits<{
   send: [message: string]
   resume: [action: string]
+  addFiles: [files: File[]]
+  removeFile: [index: number]
 }>()
-
-const { pendingFiles, addFiles, removeFile } = useChatStream()
 
 const inputText = ref('')
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
@@ -157,18 +159,20 @@ function triggerFileInput() {
   fileInputRef.value?.click()
 }
 
-function handleFileSelect(e: Event) {
-  const target = e.target as HTMLInputElement
-  const files = Array.from(target.files || [])
-  
+function processFiles(files: File[]) {
   const validFiles = files.filter(f => f.size <= MAX_FILE_SIZE)
   if (validFiles.length < files.length) {
     console.warn('部分文件超过 50MB，已跳过')
   }
   
-  const remaining = MAX_FILE_COUNT - pendingFiles.value.length
-  addFiles(validFiles.slice(0, remaining))
-  
+  const remaining = MAX_FILE_COUNT - props.pendingFiles.length
+  emit('addFiles', validFiles.slice(0, remaining))
+}
+
+function handleFileSelect(e: Event) {
+  const target = e.target as HTMLInputElement
+  const files = Array.from(target.files || [])
+  processFiles(files)
   target.value = ''
 }
 
@@ -188,20 +192,13 @@ function handlePaste(e: ClipboardEvent) {
   
   if (files.length > 0) {
     e.preventDefault()
-    
-    const validFiles = files.filter(f => f.size <= MAX_FILE_SIZE)
-    if (validFiles.length < files.length) {
-      console.warn('部分文件超过 50MB，已跳过')
-    }
-    
-    const remaining = MAX_FILE_COUNT - pendingFiles.value.length
-    addFiles(validFiles.slice(0, remaining))
+    processFiles(files)
   }
 }
 
 function handleSend() {
   const message = inputText.value.trim()
-  if ((message || pendingFiles.value.length > 0) && !props.disabled) {
+  if ((message || props.pendingFiles.length > 0) && !props.disabled) {
     emit('send', message)
     inputText.value = ''
     nextTick(() => {
