@@ -35,14 +35,14 @@
         
         <img
           v-else-if="previewType === 'image'"
-          :src="previewUrl"
+          :src="imageBlobUrl"
           class="preview-image"
           @error="handlePreviewError"
         />
         
         <iframe
           v-else-if="previewType === 'pdf'"
-          :src="previewUrl"
+          :src="pdfBlobUrl"
           class="preview-pdf"
         />
         
@@ -63,9 +63,8 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import type { FileItem } from '@/types/file'
-import { isImage, isTextFile, getImageUrl } from '@/types/file'
+import { isImage, isTextFile } from '@/types/file'
 import { downloadFile } from '@/api/webdav'
-import { useAuthStore } from '@/stores/auth'
 
 const props = defineProps<{
   modelValue: boolean
@@ -77,11 +76,11 @@ const emit = defineEmits<{
   'download': [file: FileItem]
 }>()
 
-const authStore = useAuthStore()
-
 const loading = ref(false)
 const error = ref('')
 const textContent = ref('')
+const pdfBlobUrl = ref('')
+const imageBlobUrl = ref('')
 
 const previewType = computed(() => {
   if (!props.file) return null
@@ -91,18 +90,54 @@ const previewType = computed(() => {
   return null
 })
 
-const previewUrl = computed(() => {
-  if (!props.file) return ''
-  const url = getImageUrl(props.file.path)
-  const token = authStore.token || ''
-  return `${url}?token=${encodeURIComponent(token)}`
-})
-
 watch(() => props.modelValue, async (val) => {
-  if (val && props.file && previewType.value === 'text') {
-    await loadTextContent()
+  if (val && props.file) {
+    if (previewType.value === 'text') {
+      await loadTextContent()
+    } else if (previewType.value === 'pdf') {
+      await loadPdfContent()
+    } else if (previewType.value === 'image') {
+      await loadImageContent()
+    }
+  }
+  if (!val) {
+    if (pdfBlobUrl.value) {
+      URL.revokeObjectURL(pdfBlobUrl.value)
+      pdfBlobUrl.value = ''
+    }
+    if (imageBlobUrl.value) {
+      URL.revokeObjectURL(imageBlobUrl.value)
+      imageBlobUrl.value = ''
+    }
   }
 })
+
+async function loadImageContent() {
+  if (!props.file) return
+  
+  loading.value = true
+  error.value = ''
+  
+  try {
+    const blob = await downloadFile(props.file.path)
+    const ext = props.file.name.split('.').pop()?.toLowerCase() || ''
+    const mimeTypes: Record<string, string> = {
+      png: 'image/png',
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      gif: 'image/gif',
+      webp: 'image/webp',
+      svg: 'image/svg+xml',
+      bmp: 'image/bmp'
+    }
+    const typedBlob = new Blob([blob], { type: mimeTypes[ext] || 'image/png' })
+    imageBlobUrl.value = URL.createObjectURL(typedBlob)
+  } catch (e) {
+    error.value = '加载图片失败'
+  } finally {
+    loading.value = false
+  }
+}
 
 async function loadTextContent() {
   if (!props.file) return
@@ -116,6 +151,23 @@ async function loadTextContent() {
     textContent.value = text
   } catch (e) {
     error.value = '加载文件失败'
+  } finally {
+    loading.value = false
+  }
+}
+
+async function loadPdfContent() {
+  if (!props.file) return
+  
+  loading.value = true
+  error.value = ''
+  
+  try {
+    const blob = await downloadFile(props.file.path)
+    const typedBlob = new Blob([blob], { type: 'application/pdf' })
+    pdfBlobUrl.value = URL.createObjectURL(typedBlob)
+  } catch (e) {
+    error.value = '加载PDF失败'
   } finally {
     loading.value = false
   }
