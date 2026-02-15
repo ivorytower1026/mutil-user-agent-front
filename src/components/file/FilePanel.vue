@@ -234,6 +234,9 @@ async function confirmDelete() {
 
 <style scoped>
 .file-panel {
+  position: absolute;
+  right: 0;
+  top: 0;
   width: 320px;
   height: 100%;
   display: flex;
@@ -241,6 +244,7 @@ async function confirmDelete() {
   background-color: #fff;
   border-left: 1px solid rgba(0, 0, 0, 0.08);
   transition: width 0.3s ease;
+  z-index: 10;
 }
 
 .file-panel.collapsed {
