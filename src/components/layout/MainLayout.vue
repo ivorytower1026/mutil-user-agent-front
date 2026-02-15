@@ -25,7 +25,7 @@ import AppBar from './AppBar.vue'
 import FilePanel from '@/components/file/FilePanel.vue'
 
 const drawerOpen = ref(true)
-const filePanelOpen = ref(true)
+const filePanelOpen = ref(false)
 const contentWrapperRef = ref<HTMLElement | null>(null)
 
 function handleFilePanelResize(e: CustomEvent) {

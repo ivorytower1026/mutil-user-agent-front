@@ -1,5 +1,5 @@
 <template>
-  <v-app-bar flat class="app-bar">
+  <v-app-bar flat density="compact" class="app-bar">
     <v-app-bar-nav-icon 
       variant="text" 
       @click="$emit('toggle-drawer')" 
