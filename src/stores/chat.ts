@@ -41,7 +41,7 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
-  function addToolCall(toolCall: { name: string; args: Record<string, unknown> }) {
+  function addToolCall(toolCall: { name: string }) {
     const lastMessage = messages.value[messages.value.length - 1]
     if (lastMessage && lastMessage.role === 'assistant') {
       if (!lastMessage.toolCalls) {
@@ -50,14 +50,13 @@ export const useChatStore = defineStore('chat', () => {
       lastMessage.toolCalls.push({
         id: generateId(),
         name: toolCall.name,
-        args: toolCall.args,
         status: 'running',
         timestamp: new Date()
       })
     }
   }
 
-  function completeToolCall(toolName: string, output: unknown) {
+  function completeToolCall(toolName: string) {
     const lastMessage = messages.value[messages.value.length - 1]
     if (lastMessage && lastMessage.toolCalls) {
       const toolCall = lastMessage.toolCalls.find(
@@ -65,7 +64,6 @@ export const useChatStore = defineStore('chat', () => {
       )
       if (toolCall) {
         toolCall.status = 'completed'
-        toolCall.output = output
       }
     }
   }

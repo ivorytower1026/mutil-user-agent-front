@@ -4,7 +4,6 @@ export type SSEEventName =
   | 'tool/end'
   | 'interrupt'
   | 'title_updated'
-  | 'updates'
   | 'error'
   | 'end'
 
@@ -13,8 +12,7 @@ export interface SSEEvent {
   content?: string
   is_final?: boolean
   tool?: string
-  input?: Record<string, unknown>
-  output?: Record<string, unknown>
+  status?: 'running' | 'completed'
   info?: string
   message?: string
   data?: Record<string, unknown>

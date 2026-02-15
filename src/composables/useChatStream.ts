@@ -63,17 +63,16 @@ export function useChatStream() {
         break
 
       case 'tool/start':
-        if (event.tool && event.input) {
+        if (event.tool) {
           chatStore.addToolCall({
-            name: event.tool,
-            args: event.input
+            name: event.tool
           })
         }
         break
 
       case 'tool/end':
         if (event.tool) {
-          chatStore.completeToolCall(event.tool, event.output)
+          chatStore.completeToolCall(event.tool)
         }
         break
 
@@ -92,9 +91,6 @@ export function useChatStream() {
         if (event.title && sessionStore.currentThreadId) {
           sessionStore.updateThreadTitle(sessionStore.currentThreadId, event.title)
         }
-        break
-
-      case 'updates':
         break
 
       case 'error':
