@@ -1,63 +1,179 @@
 <template>
-  <v-card variant="outlined" class="interrupt-detail">
-    <v-card-text>
-      <v-row dense>
-        <v-col cols="12">
-          <div class="text-caption text-medium-emphasis">中断信息</div>
-          <div class="text-body-1 mt-1">{{ interrupt.info }}</div>
-        </v-col>
-        
-        <v-col v-if="interrupt.taskName !== 'Unknown'" cols="12" class="mt-3">
-          <div class="text-caption text-medium-emphasis">任务名称</div>
-          <v-chip size="small" color="primary" variant="flat" class="mt-1">
-            {{ interrupt.taskName }}
-          </v-chip>
-        </v-col>
-        
-        <v-col v-if="interrupt.data && Object.keys(interrupt.data).length > 0" cols="12" class="mt-3">
-          <div class="text-caption text-medium-emphasis mb-1">详细信息</div>
-          <pre class="detail-json">{{ formatJson(interrupt.data) }}</pre>
-        </v-col>
-      </v-row>
-    </v-card-text>
-  </v-card>
+  <div class="interrupt-detail">
+    <div class="interrupt-header">
+      <div class="interrupt-info">{{ interrupt.info }}</div>
+      <v-chip
+        v-if="interrupt.taskName && interrupt.taskName !== 'Unknown'"
+        size="small"
+        color="primary"
+        variant="flat"
+      >
+        {{ interrupt.taskName }}
+      </v-chip>
+    </div>
+    
+    <div class="options-list">
+      <div
+        v-for="option in displayOptions"
+        :key="option.id"
+        class="option-card"
+        :class="{ selected: modelValue === option.id }"
+        @click="$emit('update:modelValue', option.id)"
+      >
+        <v-icon v-if="option.icon" size="18" class="option-icon">
+          {{ option.icon }}
+        </v-icon>
+        <div class="option-content">
+          <div class="option-label">{{ option.label }}</div>
+          <div v-if="option.description" class="option-desc">
+            {{ option.description }}
+          </div>
+        </div>
+        <v-icon v-if="modelValue === option.id" size="18" color="primary" class="check-icon">
+          mdi-check-circle
+        </v-icon>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
-import type { Interrupt } from '@/types/chat'
+import { computed } from 'vue'
+import type { Interrupt, InterruptOption } from '@/types/chat'
 
-defineProps<{
+const props = defineProps<{
   interrupt: Interrupt
+  modelValue?: string
 }>()
 
-function formatJson(data: unknown): string {
-  return JSON.stringify(data, null, 2)
-}
+defineEmits<{
+  'update:modelValue': [value: string]
+}>()
+
+const defaultOptions: InterruptOption[] = [
+  {
+    id: 'continue',
+    label: '继续执行',
+    description: '按原计划继续执行任务',
+    icon: 'mdi-play'
+  },
+  {
+    id: 'cancel',
+    label: '取消执行',
+    description: '终止当前任务并返回',
+    icon: 'mdi-stop'
+  }
+]
+
+const displayOptions = computed(() => {
+  return props.interrupt.options?.length ? props.interrupt.options : defaultOptions
+})
 </script>
 
 <style scoped>
 .interrupt-detail {
-  background-color: rgba(255, 193, 7, 0.05);
+  width: 100%;
 }
 
-.detail-json {
+.interrupt-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.interrupt-info {
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.8);
+  flex: 1;
+  min-width: 200px;
+}
+
+.options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.option-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background-color: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.option-card:hover {
+  border-color: rgba(0, 0, 0, 0.15);
   background-color: rgba(0, 0, 0, 0.05);
-  border-radius: 4px;
-  padding: 12px;
-  font-family: 'Fira Code', 'Monaco', 'Consolas', monospace;
-  font-size: 0.85em;
-  overflow-x: auto;
-  white-space: pre-wrap;
-  word-break: break-all;
-  max-height: 300px;
-  overflow-y: auto;
 }
 
-.v-theme--dark .interrupt-detail {
-  background-color: rgba(255, 193, 7, 0.1);
+.option-card.selected {
+  border-color: #2196F3;
+  background-color: rgba(33, 150, 243, 0.08);
 }
 
-.v-theme--dark .detail-json {
-  background-color: rgba(255, 255, 255, 0.1);
+.option-icon {
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+.option-card.selected .option-icon {
+  opacity: 1;
+  color: #2196F3;
+}
+
+.option-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.option-label {
+  font-weight: 500;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.87);
+}
+
+.option-desc {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.5);
+  margin-top: 2px;
+}
+
+.check-icon {
+  flex-shrink: 0;
+}
+
+.v-theme--dark .interrupt-info {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.v-theme--dark .option-card {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.v-theme--dark .option-card:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.v-theme--dark .option-card.selected {
+  border-color: #2196F3;
+  background-color: rgba(33, 150, 243, 0.15);
+}
+
+.v-theme--dark .option-label {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.v-theme--dark .option-desc {
+  color: rgba(255, 255, 255, 0.5);
 }
 </style>

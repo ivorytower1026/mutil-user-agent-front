@@ -46,7 +46,7 @@ export interface ApiMessage {
 }
 
 export interface ResumeRequest {
-  action: 'continue' | 'cancel'
+  action: string
 }
 
 export interface ThreadListItem {

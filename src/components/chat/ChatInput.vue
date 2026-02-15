@@ -7,37 +7,30 @@
     
     <div v-if="interrupt" class="interrupt-selector">
       <div class="interrupt-header">
-        <v-icon color="warning" size="20">mdi-alert-circle</v-icon>
+        <v-icon color="warning" size="20">mdi-alert-circle-outline</v-icon>
         <span class="interrupt-title">需要人工确认</span>
       </div>
       
-      <InterruptDetail :interrupt="interrupt" />
+      <InterruptDetail
+        :interrupt="interrupt"
+        v-model="selectedOptionId"
+      />
       
       <div class="interrupt-actions">
         <v-btn
-          color="error"
-          variant="outlined"
-          size="small"
-          :disabled="isLoading"
-          @click="handleResume('cancel')"
-        >
-          <v-icon start size="18">mdi-close</v-icon>
-          取消执行
-        </v-btn>
-        <v-btn
           color="primary"
           variant="flat"
-          size="small"
           :loading="isLoading"
-          @click="handleResume('continue')"
+          :disabled="!selectedOptionId"
+          @click="handleConfirm"
         >
           <v-icon start size="18">mdi-check</v-icon>
-          继续执行
+          确认选择
         </v-btn>
       </div>
     </div>
     
-    <div v-else class="chat-input-container">
+    <div v-else class="chat-input-container" @click="textareaRef?.focus()">
       <textarea
         ref="textareaRef"
         v-model="inputText"
@@ -62,7 +55,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick } from 'vue'
+import { ref, nextTick, watch } from 'vue'
 import type { Interrupt } from '@/types/chat'
 import InterruptDetail from '@/components/interrupt/InterruptDetail.vue'
 
@@ -80,11 +73,20 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{
   send: [message: string]
-  resume: [action: 'continue' | 'cancel']
+  resume: [action: string]
 }>()
 
 const inputText = ref('')
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
+const selectedOptionId = ref<string>('')
+
+watch(() => props.interrupt, (newInterrupt) => {
+  if (newInterrupt?.options?.length) {
+    selectedOptionId.value = newInterrupt.options[0].id
+  } else {
+    selectedOptionId.value = 'continue'
+  }
+}, { immediate: true })
 
 function autoResize() {
   nextTick(() => {
@@ -115,8 +117,10 @@ function handleSend() {
   }
 }
 
-function handleResume(action: 'continue' | 'cancel') {
-  emit('resume', action)
+function handleConfirm() {
+  if (selectedOptionId.value) {
+    emit('resume', selectedOptionId.value)
+  }
 }
 </script>
 
@@ -143,9 +147,9 @@ function handleResume(action: 'continue' | 'cancel') {
   max-width: 768px;
   margin: 0 auto;
   padding: 16px;
-  background-color: rgba(255, 193, 7, 0.06);
+  background-color: rgba(0, 0, 0, 0.02);
   border-radius: 16px;
-  border: 1px solid rgba(255, 193, 7, 0.25);
+  border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .interrupt-header {
@@ -153,6 +157,8 @@ function handleResume(action: 'continue' | 'cancel') {
   align-items: center;
   gap: 8px;
   margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .interrupt-title {
@@ -165,12 +171,15 @@ function handleResume(action: 'continue' | 'cancel') {
   justify-content: flex-end;
   gap: 12px;
   margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .chat-input-container {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: 8px;
+  cursor: text;
   max-width: 768px;
   margin: 0 auto;
   padding: 12px 16px;
@@ -243,8 +252,16 @@ function handleResume(action: 'continue' | 'cancel') {
 }
 
 .v-theme--dark .interrupt-selector {
-  background-color: rgba(255, 193, 7, 0.08);
-  border-color: rgba(255, 193, 7, 0.3);
+  background-color: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.v-theme--dark .interrupt-header {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.v-theme--dark .interrupt-actions {
+  border-top-color: rgba(255, 255, 255, 0.08);
 }
 
 .v-theme--dark .chat-input-container {

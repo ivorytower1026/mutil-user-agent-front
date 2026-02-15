@@ -13,10 +13,18 @@ export interface ToolCall {
   timestamp: Date
 }
 
+export interface InterruptOption {
+  id: string
+  label: string
+  description?: string
+  icon?: string
+}
+
 export interface Interrupt {
   taskName: string
   info: string
   data?: Record<string, unknown>
+  options?: InterruptOption[]
 }
 
 export interface Session {

@@ -2,7 +2,7 @@ import { ref } from 'vue'
 import { useChatStore } from '@/stores/chat'
 import { useSessionStore } from '@/stores/session'
 import { streamChat, streamResume } from '@/api/sse'
-import type { SSEEvent } from '@/types/sse'
+import type { SSEEvent, InterruptOption } from '@/types'
 
 export function useChatStream() {
   const chatStore = useChatStore()
@@ -36,14 +36,14 @@ export function useChatStream() {
     }
   }
 
-  async function resumeInterrupt(threadId: string, action: 'continue' | 'cancel') {
+  async function resumeInterrupt(threadId: string, optionId: string) {
     chatStore.setLoading(true)
     chatStore.clearInterrupt()
     
     abortController.value = new AbortController()
 
     try {
-      for await (const event of streamResume(threadId, action, abortController.value.signal)) {
+      for await (const event of streamResume(threadId, optionId, abortController.value.signal)) {
         handleEvent(event)
       }
     } catch (e: unknown) {
@@ -77,13 +77,24 @@ export function useChatStream() {
         break
 
       case 'interrupt':
-        chatStore.setInterrupt({
-          taskName: 'Unknown',
-          info: event.info || '',
-          data: event.data || { ...event }
-        })
-        if (sessionStore.currentThreadId) {
-          sessionStore.updateSessionStatus(sessionStore.currentThreadId, 'interrupted')
+        {
+          const data = event.data || {}
+          const rawOptions = data.options as InterruptOption[] | undefined
+          
+          chatStore.setInterrupt({
+            taskName: (data.task_name as string) || 'Unknown',
+            info: event.info || (data.info as string) || '',
+            data: event.data,
+            options: rawOptions?.map(opt => ({
+              id: opt.id || String(opt),
+              label: opt.label || String(opt),
+              description: opt.description,
+              icon: opt.icon
+            }))
+          })
+          if (sessionStore.currentThreadId) {
+            sessionStore.updateSessionStatus(sessionStore.currentThreadId, 'interrupted')
+          }
         }
         break
 

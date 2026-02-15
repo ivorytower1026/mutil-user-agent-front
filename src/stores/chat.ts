@@ -37,7 +37,7 @@ export const useChatStore = defineStore('chat', () => {
 
   function appendAssistantContent(chunk: string) {
     if (needsNewline.value && streamingContent.value) {
-      streamingContent.value += '\n\n'
+      streamingContent.value += '\n'
       needsNewline.value = false
     }
     streamingContent.value += chunk

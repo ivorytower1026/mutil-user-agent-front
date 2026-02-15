@@ -46,9 +46,9 @@ async function handleSend(message: string) {
   }
 }
 
-function handleResume(action: 'continue' | 'cancel') {
+function handleResume(optionId: string) {
   if (sessionStore.currentThreadId) {
-    resumeInterrupt(sessionStore.currentThreadId, action)
+    resumeInterrupt(sessionStore.currentThreadId, optionId)
   }
 }
 </script>

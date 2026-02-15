@@ -117,7 +117,7 @@ export async function* streamChat(
 
 export async function* streamResume(
   threadId: string,
-  action: 'continue' | 'cancel',
+  optionId: string,
   signal?: AbortSignal
 ): AsyncGenerator<SSEEvent> {
   const token = getToken()
@@ -128,7 +128,7 @@ export async function* streamResume(
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {})
     },
-    body: JSON.stringify({ action } as ResumeRequest),
+    body: JSON.stringify({ action: optionId } as ResumeRequest),
     signal
   })
 
