@@ -6,17 +6,12 @@
       :has-thread="!!currentThreadId || isPendingNewSession"
     />
     
-    <InterruptDialog
-      v-model="showInterruptDialog"
-      :interrupt="interrupt"
-      :loading="isLoading"
-      @continue="handleResumeContinue"
-      @cancel="handleResumeCancel"
-    />
-    
     <ChatInput
-      :disabled="isLoading || !!interrupt"
+      :is-loading="isLoading"
+      :interrupt="interrupt"
+      :disabled="isLoading"
       @send="handleSend"
+      @resume="handleResume"
     />
   </div>
 </template>
@@ -28,7 +23,6 @@ import { useSessionStore } from '@/stores/session'
 import { useChatStream } from '@/composables/useChatStream'
 import MessageList from './MessageList.vue'
 import ChatInput from './ChatInput.vue'
-import InterruptDialog from '@/components/interrupt/InterruptDialog.vue'
 
 const chatStore = useChatStore()
 const sessionStore = useSessionStore()
@@ -39,11 +33,6 @@ const isLoading = computed(() => chatStore.isLoading)
 const interrupt = computed(() => chatStore.interrupt)
 const currentThreadId = computed(() => sessionStore.currentThreadId)
 const isPendingNewSession = computed(() => sessionStore.isPendingNewSession)
-
-const showInterruptDialog = computed({
-  get: () => !!chatStore.interrupt,
-  set: () => chatStore.clearInterrupt()
-})
 
 async function handleSend(message: string) {
   let threadId = sessionStore.currentThreadId
@@ -57,15 +46,9 @@ async function handleSend(message: string) {
   }
 }
 
-function handleResumeContinue() {
+function handleResume(action: 'continue' | 'cancel') {
   if (sessionStore.currentThreadId) {
-    resumeInterrupt(sessionStore.currentThreadId, 'continue')
-  }
-}
-
-function handleResumeCancel() {
-  if (sessionStore.currentThreadId) {
-    resumeInterrupt(sessionStore.currentThreadId, 'cancel')
+    resumeInterrupt(sessionStore.currentThreadId, action)
   }
 }
 </script>

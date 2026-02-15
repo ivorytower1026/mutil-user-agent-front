@@ -1,6 +1,43 @@
 <template>
   <div class="chat-input-wrapper">
-    <div class="chat-input-container">
+    <div v-if="isLoading && !interrupt" class="status-bar">
+      <v-progress-circular indeterminate size="16" width="2" />
+      <span>AI 正在思考中...</span>
+    </div>
+    
+    <div v-if="interrupt" class="interrupt-selector">
+      <div class="interrupt-header">
+        <v-icon color="warning" size="20">mdi-alert-circle</v-icon>
+        <span class="interrupt-title">需要人工确认</span>
+      </div>
+      
+      <InterruptDetail :interrupt="interrupt" />
+      
+      <div class="interrupt-actions">
+        <v-btn
+          color="error"
+          variant="outlined"
+          size="small"
+          :disabled="isLoading"
+          @click="handleResume('cancel')"
+        >
+          <v-icon start size="18">mdi-close</v-icon>
+          取消执行
+        </v-btn>
+        <v-btn
+          color="primary"
+          variant="flat"
+          size="small"
+          :loading="isLoading"
+          @click="handleResume('continue')"
+        >
+          <v-icon start size="18">mdi-check</v-icon>
+          继续执行
+        </v-btn>
+      </div>
+    </div>
+    
+    <div v-else class="chat-input-container">
       <textarea
         ref="textareaRef"
         v-model="inputText"
@@ -19,23 +56,31 @@
         <v-icon size="20">mdi-arrow-up</v-icon>
       </button>
     </div>
-    <p class="hint-text">按 Enter 发送，Shift + Enter 换行</p>
+    
+    <p v-if="!interrupt" class="hint-text">按 Enter 发送，Shift + Enter 换行</p>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, nextTick } from 'vue'
+import type { Interrupt } from '@/types/chat'
+import InterruptDetail from '@/components/interrupt/InterruptDetail.vue'
 
 const props = withDefaults(defineProps<{
   disabled?: boolean
   placeholder?: string
+  isLoading?: boolean
+  interrupt?: Interrupt | null
 }>(), {
   disabled: false,
-  placeholder: '给 AI 发送消息'
+  placeholder: '给 AI 发送消息',
+  isLoading: false,
+  interrupt: null
 })
 
 const emit = defineEmits<{
   send: [message: string]
+  resume: [action: 'continue' | 'cancel']
 }>()
 
 const inputText = ref('')
@@ -69,12 +114,57 @@ function handleSend() {
     })
   }
 }
+
+function handleResume(action: 'continue' | 'cancel') {
+  emit('resume', action)
+}
 </script>
 
 <style scoped>
 .chat-input-wrapper {
   padding: 16px 24px 24px;
   background: transparent;
+}
+
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 768px;
+  margin: 0 auto 12px;
+  padding: 8px 16px;
+  background-color: rgba(33, 150, 243, 0.08);
+  border-radius: 8px;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.interrupt-selector {
+  max-width: 768px;
+  margin: 0 auto;
+  padding: 16px;
+  background-color: rgba(255, 193, 7, 0.06);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 193, 7, 0.25);
+}
+
+.interrupt-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.interrupt-title {
+  font-weight: 500;
+  font-size: 15px;
+}
+
+.interrupt-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 16px;
 }
 
 .chat-input-container {
@@ -145,6 +235,16 @@ function handleSend() {
   color: rgba(0, 0, 0, 0.4);
   margin-top: 8px;
   margin-bottom: 0;
+}
+
+.v-theme--dark .status-bar {
+  background-color: rgba(33, 150, 243, 0.12);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.v-theme--dark .interrupt-selector {
+  background-color: rgba(255, 193, 7, 0.08);
+  border-color: rgba(255, 193, 7, 0.3);
 }
 
 .v-theme--dark .chat-input-container {
