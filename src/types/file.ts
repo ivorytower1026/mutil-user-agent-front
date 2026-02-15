@@ -62,6 +62,16 @@ export type ViewMode = 'list' | 'grid'
 export const CHUNK_SIZE = 10 * 1024 * 1024
 export const CHUNK_THRESHOLD = 100 * 1024 * 1024
 
+export const MAX_FILE_SIZE = 50 * 1024 * 1024
+export const MAX_FILE_COUNT = 5
+
+export interface UploadSimpleResponse {
+  success: boolean
+  path: string
+  filename: string
+  size: number
+}
+
 export const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico']
 export const TEXT_EXTENSIONS = ['txt', 'md', 'json', 'xml', 'yaml', 'yml', 'csv', 'log']
 export const CODE_EXTENSIONS = ['js', 'ts', 'vue', 'jsx', 'tsx', 'py', 'java', 'go', 'rs', 'c', 'cpp', 'h', 'css', 'scss', 'less', 'html', 'sql', 'sh', 'bash']

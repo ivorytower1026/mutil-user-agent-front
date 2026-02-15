@@ -63,6 +63,7 @@ function mapEventToSSEEvent(parsed: ParsedSSE): SSEEvent {
 export async function* streamChat(
   threadId: string,
   message: string,
+  files?: string[],
   signal?: AbortSignal
 ): AsyncGenerator<SSEEvent> {
   const token = getToken()
@@ -73,7 +74,7 @@ export async function* streamChat(
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {})
     },
-    body: JSON.stringify({ message }),
+    body: JSON.stringify({ message, files }),
     signal
   })
 

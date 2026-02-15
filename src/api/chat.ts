@@ -1,5 +1,6 @@
 import api from './client'
 import type { CreateSessionResponse, ThreadStatus, HistoryResponse, ThreadListResponse } from '@/types/api'
+import type { UploadSimpleResponse } from '@/types/file'
 
 export const chatApi = {
   async createSession(): Promise<CreateSessionResponse> {
@@ -19,8 +20,18 @@ export const chatApi = {
     return response.data
   },
 
-  async getHistory(threadId: string): Promise<HistoryResponse> {
+async getHistory(threadId: string): Promise<HistoryResponse> {
     const response = await api.get<HistoryResponse>(`/api/history/${threadId}`)
+    return response.data
+  },
+
+  async uploadSimple(file: File): Promise<UploadSimpleResponse> {
+    const formData = new FormData()
+    formData.append('file', file)
+    
+    const response = await api.post<UploadSimpleResponse>('/api/files/upload-simple', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
     return response.data
   }
 }

@@ -30,27 +30,71 @@
       </div>
     </div>
     
-    <div v-else class="chat-input-container" @click="textareaRef?.focus()">
-      <textarea
-        ref="textareaRef"
-        v-model="inputText"
-        :placeholder="placeholder"
-        :disabled="disabled"
-        class="chat-textarea"
-        rows="1"
-        @keydown="handleKeydown"
-        @input="autoResize"
-      />
-      <button
-        class="send-btn"
-        :disabled="disabled || !inputText.trim()"
-        @click="handleSend"
-      >
-        <v-icon size="20">mdi-arrow-up</v-icon>
-      </button>
-    </div>
-    
-    <p v-if="!interrupt" class="hint-text">按 Enter 发送，Shift + Enter 换行</p>
+    <template v-else>
+      <div v-if="pendingFiles.length > 0" class="pending-files">
+        <div 
+          v-for="(item, index) in pendingFiles" 
+          :key="index" 
+          class="file-tag"
+          :class="{ 'file-error': item.status === 'error' }"
+        >
+          <v-icon size="14" class="mr-1">mdi-file-document</v-icon>
+          <span class="file-name">{{ item.file.name }}</span>
+          <v-progress-circular 
+            v-if="item.status === 'uploading'" 
+            size="14" 
+            width="2" 
+            indeterminate 
+            class="ml-1"
+          />
+          <v-icon 
+            v-else 
+            size="14" 
+            class="remove-btn" 
+            @click="removeFile(index)"
+          >
+            mdi-close
+          </v-icon>
+        </div>
+      </div>
+      
+      <div class="chat-input-container" @click="textareaRef?.focus()">
+        <button class="attach-btn" :disabled="disabled" @click.stop="triggerFileInput">
+          <v-icon size="20">mdi-paperclip</v-icon>
+        </button>
+        <input 
+          ref="fileInputRef" 
+          type="file" 
+          multiple 
+          hidden 
+          @change="handleFileSelect"
+        />
+        
+        <textarea
+          ref="textareaRef"
+          v-model="inputText"
+          :placeholder="placeholder"
+          :disabled="disabled"
+          class="chat-textarea"
+          rows="1"
+          @keydown="handleKeydown"
+          @input="autoResize"
+          @paste="handlePaste"
+        />
+        <button
+          class="send-btn"
+          :disabled="disabled || (!inputText.trim() && pendingFiles.length === 0)"
+          @click="handleSend"
+        >
+          <v-icon size="20">mdi-arrow-up</v-icon>
+        </button>
+      </div>
+      
+      <p class="hint-text">
+        按 Enter 发送，Shift + Enter 换行，支持粘贴文件
+        <span v-if="pendingFiles.length > 0"> | 已选 {{ pendingFiles.length }}/5 个文件</span>
+      </p>
+    </template>
   </div>
 </template>
 
@@ -58,6 +102,8 @@
 import { ref, nextTick, watch } from 'vue'
 import type { Interrupt } from '@/types/chat'
 import InterruptDetail from '@/components/interrupt/InterruptDetail.vue'
+import { useChatStream } from '@/composables/useChatStream'
+import { MAX_FILE_COUNT, MAX_FILE_SIZE } from '@/types/file'
 
 const props = withDefaults(defineProps<{
   disabled?: boolean
@@ -76,8 +122,11 @@ const emit = defineEmits<{
   resume: [action: string]
 }>()
 
+const { pendingFiles, addFiles, removeFile } = useChatStream()
+
 const inputText = ref('')
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
+const fileInputRef = ref<HTMLInputElement | null>(null)
 const selectedOptionId = ref<string>('')
 
 watch(() => props.interrupt, (newInterrupt) => {
@@ -104,9 +153,55 @@ function handleKeydown(e: KeyboardEvent) {
   }
 }
 
+function triggerFileInput() {
+  fileInputRef.value?.click()
+}
+
+function handleFileSelect(e: Event) {
+  const target = e.target as HTMLInputElement
+  const files = Array.from(target.files || [])
+  
+  const validFiles = files.filter(f => f.size <= MAX_FILE_SIZE)
+  if (validFiles.length < files.length) {
+    console.warn('部分文件超过 50MB，已跳过')
+  }
+  
+  const remaining = MAX_FILE_COUNT - pendingFiles.value.length
+  addFiles(validFiles.slice(0, remaining))
+  
+  target.value = ''
+}
+
+function handlePaste(e: ClipboardEvent) {
+  const items = e.clipboardData?.items
+  if (!items) return
+  
+  const files: File[] = []
+  for (const item of items) {
+    if (item.kind === 'file') {
+      const file = item.getAsFile()
+      if (file) {
+        files.push(file)
+      }
+    }
+  }
+  
+  if (files.length > 0) {
+    e.preventDefault()
+    
+    const validFiles = files.filter(f => f.size <= MAX_FILE_SIZE)
+    if (validFiles.length < files.length) {
+      console.warn('部分文件超过 50MB，已跳过')
+    }
+    
+    const remaining = MAX_FILE_COUNT - pendingFiles.value.length
+    addFiles(validFiles.slice(0, remaining))
+  }
+}
+
 function handleSend() {
   const message = inputText.value.trim()
-  if (message && !props.disabled) {
+  if ((message || pendingFiles.value.length > 0) && !props.disabled) {
     emit('send', message)
     inputText.value = ''
     nextTick(() => {
@@ -175,6 +270,40 @@ function handleConfirm() {
   border-top: 1px solid rgba(0, 0, 0, 0.06);
 }
 
+.pending-files {
+  max-width: 768px;
+  margin: 0 auto 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.file-tag {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  background-color: rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  font-size: 12px;
+  max-width: 200px;
+}
+
+.file-tag.file-error {
+  background-color: rgba(244, 67, 54, 0.1);
+  color: #f44336;
+}
+
+.file-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.remove-btn {
+  cursor: pointer;
+  margin-left: 4px;
+}
+
 .chat-input-container {
   display: flex;
   align-items: center;
@@ -190,6 +319,28 @@ function handleConfirm() {
 
 .chat-input-container:focus-within {
   background-color: rgba(0, 0, 0, 0.06);
+}
+
+.attach-btn {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.attach-btn:hover:not(:disabled) {
+  color: rgba(0, 0, 0, 0.8);
+}
+
+.attach-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 
 .chat-textarea {
@@ -264,12 +415,24 @@ function handleConfirm() {
   border-top-color: rgba(255, 255, 255, 0.08);
 }
 
+.v-theme--dark .file-tag {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
 .v-theme--dark .chat-input-container {
   background-color: rgba(255, 255, 255, 0.06);
 }
 
 .v-theme--dark .chat-input-container:focus-within {
   background-color: rgba(255, 255, 255, 0.1);
+}
+
+.v-theme--dark .attach-btn {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.v-theme--dark .attach-btn:hover:not(:disabled) {
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .v-theme--dark .chat-textarea::placeholder {
