@@ -8,7 +8,7 @@
     />
     
     <v-main class="main-content">
-      <div class="content-wrapper">
+      <div class="content-wrapper" ref="contentWrapperRef">
         <div class="chat-area" :class="{ 'with-panel': filePanelOpen }">
           <slot />
         </div>
@@ -19,13 +19,31 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import SessionDrawer from './SessionDrawer.vue'
 import AppBar from './AppBar.vue'
 import FilePanel from '@/components/file/FilePanel.vue'
 
 const drawerOpen = ref(true)
 const filePanelOpen = ref(true)
+const contentWrapperRef = ref<HTMLElement | null>(null)
+
+function handleFilePanelResize(e: CustomEvent) {
+  if (contentWrapperRef.value) {
+    contentWrapperRef.value.style.setProperty('--file-panel-width', e.detail + 'px')
+  }
+}
+
+onMounted(() => {
+  if (contentWrapperRef.value) {
+    contentWrapperRef.value.style.setProperty('--file-panel-width', '320px')
+  }
+  window.addEventListener('file-panel-resize', handleFilePanelResize as EventListener)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('file-panel-resize', handleFilePanelResize as EventListener)
+})
 </script>
 
 <style scoped>
@@ -42,6 +60,7 @@ const filePanelOpen = ref(true)
 }
 
 .content-wrapper {
+  --file-panel-width: 320px;
   display: flex;
   height: 100%;
   position: relative;
@@ -52,10 +71,9 @@ const filePanelOpen = ref(true)
   min-width: 0;
   display: flex;
   flex-direction: column;
-  transition: margin-right 0.3s ease;
 }
 
 .chat-area.with-panel {
-  margin-right: 320px;
+  margin-right: var(--file-panel-width);
 }
 </style>

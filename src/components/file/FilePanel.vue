@@ -1,5 +1,9 @@
 <template>
-  <div class="file-panel" :class="{ collapsed: !open }">
+  <div ref="panelRef" class="file-panel" :class="{ collapsed: !open, 'is-resizing': isResizing }">
+    <div 
+      class="resize-handle resize-handle-left"
+      @mousedown="handleStartResize"
+    />
     <div class="panel-header">
       <span class="title">文件管理</span>
       <v-btn
@@ -98,7 +102,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useFileStore } from '@/stores/file'
 import { useWebDAV } from '@/composables/useWebDAV'
 import { useFileUpload } from '@/composables/useFileUpload'
@@ -115,6 +119,10 @@ import RenameDialog from './RenameDialog.vue'
 import FilePreview from './FilePreview.vue'
 import FileContextMenu from './FileContextMenu.vue'
 
+const INITIAL_WIDTH = 320
+const MIN_WIDTH = 280
+const MAX_WIDTH = 500
+
 defineProps<{
   open: boolean
 }>()
@@ -122,6 +130,52 @@ defineProps<{
 const fileStore = useFileStore()
 const { uploadFiles } = useFileUpload()
 useWebDAV()
+
+const panelRef = ref<HTMLElement | null>(null)
+const isResizing = ref(false)
+let currentWidth = INITIAL_WIDTH
+
+function dispatchResizeEvent(width: number) {
+  window.dispatchEvent(new CustomEvent('file-panel-resize', { detail: width }))
+}
+
+onMounted(() => {
+  dispatchResizeEvent(INITIAL_WIDTH)
+  if (panelRef.value) {
+    panelRef.value.style.width = INITIAL_WIDTH + 'px'
+  }
+})
+
+function handleStartResize(e: MouseEvent) {
+  if (!panelRef.value) return
+  e.preventDefault()
+  isResizing.value = true
+  const startX = e.clientX
+  const startWidth = currentWidth
+
+  function handleMouseMove(e: MouseEvent) {
+    const delta = startX - e.clientX
+    const newWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startWidth + delta))
+    currentWidth = newWidth
+    dispatchResizeEvent(newWidth)
+    if (panelRef.value) {
+      panelRef.value.style.width = newWidth + 'px'
+    }
+  }
+
+  function handleMouseUp() {
+    isResizing.value = false
+    document.removeEventListener('mousemove', handleMouseMove)
+    document.removeEventListener('mouseup', handleMouseUp)
+    document.body.style.cursor = ''
+    document.body.style.userSelect = ''
+  }
+
+  document.addEventListener('mousemove', handleMouseMove, { passive: true })
+  document.addEventListener('mouseup', handleMouseUp)
+  document.body.style.cursor = 'col-resize'
+  document.body.style.userSelect = 'none'
+}
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const showNewFolder = ref(false)
@@ -243,14 +297,34 @@ async function confirmDelete() {
   flex-direction: column;
   background-color: #fff;
   border-left: 1px solid rgba(0, 0, 0, 0.08);
-  transition: width 0.3s ease;
   z-index: 10;
 }
 
 .file-panel.collapsed {
-  width: 0;
+  width: 0 !important;
   overflow: hidden;
   border-left: none;
+}
+
+.file-panel.is-resizing {
+  transition: none !important;
+}
+
+.resize-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  cursor: col-resize;
+  z-index: 10;
+}
+
+.resize-handle:hover {
+  background-color: rgba(var(--v-theme-primary), 0.3);
+}
+
+.resize-handle-left {
+  left: 0;
 }
 
 .panel-header {

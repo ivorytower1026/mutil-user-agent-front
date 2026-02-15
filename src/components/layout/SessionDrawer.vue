@@ -1,9 +1,11 @@
 <template>
   <v-navigation-drawer
+    ref="drawerRef"
     :model-value="modelValue"
-    :width="260"
+    :width="currentWidth"
     fixed
     class="session-drawer"
+    :class="{ 'is-resizing': isResizing }"
     @update:model-value="emit('update:modelValue', $event)"
   >
     <div class="drawer-content">
@@ -55,6 +57,10 @@
         </div>
       </div>
     </div>
+    <div 
+      class="resize-handle resize-handle-right"
+      @mousedown="handleStartResize"
+    />
   </v-navigation-drawer>
 </template>
 
@@ -74,6 +80,45 @@ const emit = defineEmits<{
 const sessionStore = useSessionStore()
 const chatStore = useChatStore()
 const scrollContainer = ref<HTMLElement | null>(null)
+const drawerRef = ref<{ $el: HTMLElement } | null>(null)
+
+const INITIAL_WIDTH = 260
+const MIN_WIDTH = 200
+const MAX_WIDTH = 400
+
+const currentWidth = ref(INITIAL_WIDTH)
+const isResizing = ref(false)
+
+function handleStartResize(e: MouseEvent) {
+  e.preventDefault()
+  isResizing.value = true
+  const startX = e.clientX
+  const startWidth = currentWidth.value
+  const drawerEl = drawerRef.value?.$el
+
+  function handleMouseMove(e: MouseEvent) {
+    const delta = e.clientX - startX
+    const newWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startWidth + delta))
+    currentWidth.value = newWidth
+    
+    if (drawerEl) {
+      drawerEl.style.width = newWidth + 'px'
+    }
+  }
+
+  function handleMouseUp() {
+    isResizing.value = false
+    document.removeEventListener('mousemove', handleMouseMove)
+    document.removeEventListener('mouseup', handleMouseUp)
+    document.body.style.cursor = ''
+    document.body.style.userSelect = ''
+  }
+
+  document.addEventListener('mousemove', handleMouseMove, { passive: true })
+  document.addEventListener('mouseup', handleMouseUp)
+  document.body.style.cursor = 'col-resize'
+  document.body.style.userSelect = 'none'
+}
 
 const sessions = computed(() => sessionStore.sessions)
 const currentThreadId = computed(() => sessionStore.currentThreadId)
@@ -255,5 +300,38 @@ function handleScroll() {
 
 .v-theme--dark .empty-state {
   color: rgba(255, 255, 255, 0.4);
+}
+
+.resize-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  cursor: col-resize;
+  z-index: 10;
+}
+
+.resize-handle:hover {
+  background-color: rgba(var(--v-theme-primary), 0.3);
+}
+
+.resize-handle-right {
+  right: 0;
+}
+
+.session-drawer.is-resizing {
+  transition: none !important;
+}
+
+.session-drawer.is-resizing :deep(.v-navigation-drawer__content) {
+  transition: none !important;
+}
+
+.session-drawer.is-resizing :deep(.v-navigation-drawer__border) {
+  display: none !important;
+}
+
+.session-drawer :deep(.v-navigation-drawer__border) {
+  display: none !important;
 }
 </style>
