@@ -10,6 +10,13 @@
         <span class="text-truncate">{{ file.name }}</span>
         <v-spacer />
         <v-btn
+          v-if="previewType === 'text'"
+          icon="mdi-content-save"
+          variant="text"
+          :loading="saving"
+          @click="handleSave"
+        />
+        <v-btn
           icon="mdi-download"
           variant="text"
           @click="handleDownload"
@@ -46,7 +53,12 @@
           class="preview-pdf"
         />
         
-        <pre v-else-if="previewType === 'text'" class="preview-text">{{ textContent }}</pre>
+        <Codemirror
+          v-else-if="previewType === 'text'"
+          v-model="textContent"
+          class="preview-editor"
+          :extensions="extensions"
+        />
         
         <div v-else class="unsupported-state">
           <v-icon size="48" color="grey">mdi-file-question</v-icon>
@@ -62,9 +74,17 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { Codemirror } from 'vue-codemirror'
+import { javascript } from '@codemirror/lang-javascript'
+import { python } from '@codemirror/lang-python'
+import { markdown } from '@codemirror/lang-markdown'
+import { html } from '@codemirror/lang-html'
+import { css } from '@codemirror/lang-css'
+import { json } from '@codemirror/lang-json'
+import { oneDark } from '@codemirror/theme-one-dark'
 import type { FileItem } from '@/types/file'
 import { isImage, isTextFile } from '@/types/file'
-import { downloadFile } from '@/api/webdav'
+import { downloadFile, uploadFile } from '@/api/webdav'
 
 const props = defineProps<{
   modelValue: boolean
@@ -77,10 +97,30 @@ const emit = defineEmits<{
 }>()
 
 const loading = ref(false)
+const saving = ref(false)
 const error = ref('')
 const textContent = ref('')
 const pdfBlobUrl = ref('')
 const imageBlobUrl = ref('')
+
+const extensions = computed(() => {
+  if (!props.file) return []
+  const ext = props.file.name.split('.').pop()?.toLowerCase() || ''
+  const langMap: Record<string, ReturnType<typeof javascript>> = {
+    js: javascript(),
+    jsx: javascript({ jsx: true }),
+    ts: javascript({ typescript: true }),
+    tsx: javascript({ jsx: true, typescript: true }),
+    py: python(),
+    md: markdown(),
+    html: html(),
+    htm: html(),
+    css: css(),
+    json: json()
+  }
+  const langExt = langMap[ext] || javascript()
+  return [langExt, oneDark]
+})
 
 const previewType = computed(() => {
   if (!props.file) return null
@@ -182,6 +222,21 @@ function handleDownload() {
     emit('download', props.file)
   }
 }
+
+async function handleSave() {
+  if (!props.file || saving.value) return
+  
+  saving.value = true
+  error.value = ''
+  
+  try {
+    await uploadFile(props.file.path, textContent.value)
+  } catch (e) {
+    error.value = '保存失败'
+  } finally {
+    saving.value = false
+  }
+}
 </script>
 
 <style scoped>
@@ -217,21 +272,17 @@ function handleDownload() {
   border: none;
 }
 
-.preview-text {
+.preview-editor {
   width: 100%;
-  margin: 0;
-  padding: 16px;
-  background-color: #f5f5f5;
-  border-radius: 8px;
-  font-family: 'Consolas', 'Monaco', monospace;
-  font-size: 13px;
-  white-space: pre-wrap;
-  word-break: break-all;
+  height: calc(90vh - 150px);
   overflow: auto;
-  max-height: calc(90vh - 150px);
 }
 
-.v-theme--dark .preview-text {
-  background-color: #1e1e1e;
+.preview-editor :deep(.cm-editor) {
+  height: 100%;
+}
+
+.preview-editor :deep(.cm-scroller) {
+  overflow: auto;
 }
 </style>
