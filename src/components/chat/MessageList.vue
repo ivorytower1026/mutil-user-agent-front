@@ -4,10 +4,18 @@
       <div class="empty-icon">
         <v-icon size="48" color="grey-lighten-1">mdi-chat-outline</v-icon>
       </div>
-      <h2 class="empty-title">{{ hasThread ? '开始对话' : '选择或创建对话' }}</h2>
-      <p class="empty-subtitle">{{ hasThread ? '输入消息开始与 AI 交流' : '从左侧选择一个对话，或点击"新对话"开始' }}</p>
+      <h2 class="empty-title">
+        {{ hasThread ? "开始对话" : "选择或创建对话" }}
+      </h2>
+      <p class="empty-subtitle">
+        {{
+          hasThread
+            ? "输入消息开始与 AI 交流"
+            : '从左侧选择一个对话，或点击"新对话"开始'
+        }}
+      </p>
     </div>
-    
+
     <template v-else>
       <MessageItem
         v-for="(message, index) in messages"
@@ -30,42 +38,42 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue'
-import type { Message } from '@/types/chat'
-import MessageItem from './MessageItem.vue'
+import { ref, watch, nextTick } from "vue";
+import type { Message } from "@/types/chat";
+import MessageItem from "./MessageItem.vue";
 
 const props = defineProps<{
-  messages: Message[]
-  isStreaming?: boolean
-  hasThread?: boolean
-}>()
+  messages: Message[];
+  isStreaming?: boolean;
+  hasThread?: boolean;
+}>();
 
-const listRef = ref<HTMLElement | null>(null)
-const isNearBottom = ref(true)
-const showScrollButton = ref(false)
-const SCROLL_THRESHOLD = 100
+const listRef = ref<HTMLElement | null>(null);
+const isNearBottom = ref(true);
+const showScrollButton = ref(false);
+const SCROLL_THRESHOLD = 100;
 
 function handleScroll() {
-  if (!listRef.value) return
-  const { scrollTop, scrollHeight, clientHeight } = listRef.value
-  const distanceFromBottom = scrollHeight - scrollTop - clientHeight
-  isNearBottom.value = distanceFromBottom < SCROLL_THRESHOLD
-  showScrollButton.value = !isNearBottom.value
+  if (!listRef.value) return;
+  const { scrollTop, scrollHeight, clientHeight } = listRef.value;
+  const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+  isNearBottom.value = distanceFromBottom < SCROLL_THRESHOLD;
+  showScrollButton.value = !isNearBottom.value;
 }
 
 function scrollToBottom() {
   nextTick(() => {
     if (listRef.value) {
-      listRef.value.scrollTop = listRef.value.scrollHeight
-      isNearBottom.value = true
-      showScrollButton.value = false
+      listRef.value.scrollTop = listRef.value.scrollHeight;
+      isNearBottom.value = true;
+      showScrollButton.value = false;
     }
-  })
+  });
 }
 
 function autoScrollIfNeeded() {
   if (isNearBottom.value) {
-    scrollToBottom()
+    scrollToBottom();
   }
 }
 
@@ -73,16 +81,16 @@ watch(
   () => props.messages.length,
   (newLength, oldLength) => {
     if (newLength > (oldLength ?? 0)) {
-      isNearBottom.value = true
+      isNearBottom.value = true;
     }
-    autoScrollIfNeeded()
+    autoScrollIfNeeded();
   }
-)
+);
 
 watch(
   () => props.messages[props.messages.length - 1]?.content,
   () => autoScrollIfNeeded()
-)
+);
 </script>
 
 <style scoped>
@@ -144,8 +152,8 @@ watch(
   bottom: 16px;
   left: 50%;
   transform: translateX(-50%);
-  width: 40px;
-  height: 40px;
+  width: 30px;
+  height: 50px;
   border-radius: 50%;
   background-color: rgb(var(--v-theme-primary));
   border: none;
