@@ -1,5 +1,5 @@
 <template>
-  <div ref="listRef" class="message-list">
+  <div ref="listRef" class="message-list" @scroll="handleScroll">
     <div v-if="messages.length === 0" class="empty-state">
       <div class="empty-icon">
         <v-icon size="48" color="grey-lighten-1">mdi-chat-outline</v-icon>
@@ -16,6 +16,16 @@
         :is-streaming="isStreaming && index === messages.length - 1"
       />
     </template>
+
+    <transition name="fade">
+      <button
+        v-if="showScrollButton"
+        class="scroll-to-bottom"
+        @click="scrollToBottom"
+      >
+        <v-icon color="white">mdi-arrow-down</v-icon>
+      </button>
+    </transition>
   </div>
 </template>
 
@@ -31,23 +41,47 @@ const props = defineProps<{
 }>()
 
 const listRef = ref<HTMLElement | null>(null)
+const isNearBottom = ref(true)
+const showScrollButton = ref(false)
+const SCROLL_THRESHOLD = 100
+
+function handleScroll() {
+  if (!listRef.value) return
+  const { scrollTop, scrollHeight, clientHeight } = listRef.value
+  const distanceFromBottom = scrollHeight - scrollTop - clientHeight
+  isNearBottom.value = distanceFromBottom < SCROLL_THRESHOLD
+  showScrollButton.value = !isNearBottom.value
+}
 
 function scrollToBottom() {
   nextTick(() => {
     if (listRef.value) {
       listRef.value.scrollTop = listRef.value.scrollHeight
+      isNearBottom.value = true
+      showScrollButton.value = false
     }
   })
 }
 
+function autoScrollIfNeeded() {
+  if (isNearBottom.value) {
+    scrollToBottom()
+  }
+}
+
 watch(
   () => props.messages.length,
-  () => scrollToBottom()
+  (newLength, oldLength) => {
+    if (newLength > (oldLength ?? 0)) {
+      isNearBottom.value = true
+    }
+    autoScrollIfNeeded()
+  }
 )
 
 watch(
   () => props.messages[props.messages.length - 1]?.content,
-  () => scrollToBottom()
+  () => autoScrollIfNeeded()
 )
 </script>
 
@@ -103,5 +137,39 @@ watch(
 
 .v-theme--dark .empty-subtitle {
   color: rgba(255, 255, 255, 0.5);
+}
+
+.scroll-to-bottom {
+  position: sticky;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: rgb(var(--v-theme-primary));
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.scroll-to-bottom:hover {
+  transform: translateX(-50%) scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>

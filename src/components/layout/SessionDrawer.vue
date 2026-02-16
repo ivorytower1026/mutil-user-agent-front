@@ -15,7 +15,7 @@
           <span>新对话</span>
         </button>
       </div>
-      
+
       <div ref="scrollContainer" class="drawer-scroll" @scroll="handleScroll">
         <div class="session-list">
           <div
@@ -25,39 +25,43 @@
             :class="{ active: session.threadId === currentThreadId }"
             @click="handleSelectSession(session.threadId)"
           >
-            <v-icon 
-              size="18" 
+            <v-icon
+              size="18"
               :color="session.status === 'interrupted' ? 'warning' : 'default'"
               class="session-icon"
             >
-              {{ session.status === 'interrupted' ? 'mdi-pause-circle' : 'mdi-chat-outline' }}
+              {{
+                session.status === "interrupted"
+                  ? "mdi-pause-circle"
+                  : "mdi-chat-outline"
+              }}
             </v-icon>
             <div class="session-info">
               <div class="session-title">
-                {{ session.title || '新对话' }}
+                {{ session.title || "新对话" }}
               </div>
-              <div class="session-meta">
+              <!-- <div class="session-meta">
                 {{ session.messageCount }} 条消息
-              </div>
+              </div> -->
             </div>
           </div>
         </div>
-        
+
         <div v-if="isLoadingMore" class="loading-more">
           <v-progress-circular indeterminate size="20" width="2" />
         </div>
-        
+
         <div v-if="!hasMore && sessions.length > 0" class="no-more">
           没有更多了
         </div>
-        
+
         <div v-if="sessions.length === 0 && !isLoading" class="empty-state">
           <v-icon size="40" color="grey-lighten-1">mdi-chat-outline</v-icon>
           <p>暂无会话</p>
         </div>
       </div>
     </div>
-    <div 
+    <div
       class="resize-handle resize-handle-right"
       @mousedown="handleStartResize"
     />
@@ -65,91 +69,98 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { useSessionStore } from '@/stores/session'
-import { useChatStore } from '@/stores/chat'
+import { computed, onMounted, ref } from "vue";
+import { useSessionStore } from "@/stores/session";
+import { useChatStore } from "@/stores/chat";
 
 defineProps<{
-  modelValue: boolean
-}>()
+  modelValue: boolean;
+}>();
 
 const emit = defineEmits<{
-  'update:modelValue': [value: boolean]
-}>()
+  "update:modelValue": [value: boolean];
+}>();
 
-const sessionStore = useSessionStore()
-const chatStore = useChatStore()
-const scrollContainer = ref<HTMLElement | null>(null)
-const drawerRef = ref<{ $el: HTMLElement } | null>(null)
+const sessionStore = useSessionStore();
+const chatStore = useChatStore();
+const scrollContainer = ref<HTMLElement | null>(null);
+const drawerRef = ref<{ $el: HTMLElement } | null>(null);
 
-const INITIAL_WIDTH = 260
-const MIN_WIDTH = 200
-const MAX_WIDTH = 400
+const INITIAL_WIDTH = 260;
+const MIN_WIDTH = 200;
+const MAX_WIDTH = 400;
 
-const currentWidth = ref(INITIAL_WIDTH)
-const isResizing = ref(false)
+const currentWidth = ref(INITIAL_WIDTH);
+const isResizing = ref(false);
 
 function handleStartResize(e: MouseEvent) {
-  e.preventDefault()
-  isResizing.value = true
-  const startX = e.clientX
-  const startWidth = currentWidth.value
-  const drawerEl = drawerRef.value?.$el
+  e.preventDefault();
+  isResizing.value = true;
+  const startX = e.clientX;
+  const startWidth = currentWidth.value;
+  const drawerEl = drawerRef.value?.$el;
 
   function handleMouseMove(e: MouseEvent) {
-    const delta = e.clientX - startX
-    const newWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startWidth + delta))
-    currentWidth.value = newWidth
-    
+    const delta = e.clientX - startX;
+    const newWidth = Math.min(
+      MAX_WIDTH,
+      Math.max(MIN_WIDTH, startWidth + delta)
+    );
+    currentWidth.value = newWidth;
+
     if (drawerEl) {
-      drawerEl.style.width = newWidth + 'px'
+      drawerEl.style.width = newWidth + "px";
     }
   }
 
   function handleMouseUp() {
-    isResizing.value = false
-    document.removeEventListener('mousemove', handleMouseMove)
-    document.removeEventListener('mouseup', handleMouseUp)
-    document.body.style.cursor = ''
-    document.body.style.userSelect = ''
+    isResizing.value = false;
+    document.removeEventListener("mousemove", handleMouseMove);
+    document.removeEventListener("mouseup", handleMouseUp);
+    document.body.style.cursor = "";
+    document.body.style.userSelect = "";
   }
 
-  document.addEventListener('mousemove', handleMouseMove, { passive: true })
-  document.addEventListener('mouseup', handleMouseUp)
-  document.body.style.cursor = 'col-resize'
-  document.body.style.userSelect = 'none'
+  document.addEventListener("mousemove", handleMouseMove, { passive: true });
+  document.addEventListener("mouseup", handleMouseUp);
+  document.body.style.cursor = "col-resize";
+  document.body.style.userSelect = "none";
 }
 
-const sessions = computed(() => sessionStore.sessions)
-const currentThreadId = computed(() => sessionStore.currentThreadId)
-const isLoadingMore = computed(() => sessionStore.isLoadingMore)
-const hasMore = computed(() => sessionStore.hasMore)
-const isLoading = computed(() => sessionStore.isLoading)
-const isPendingNewSession = computed(() => sessionStore.isPendingNewSession)
+const sessions = computed(() => sessionStore.sessions);
+const currentThreadId = computed(() => sessionStore.currentThreadId);
+const isLoadingMore = computed(() => sessionStore.isLoadingMore);
+const hasMore = computed(() => sessionStore.hasMore);
+const isLoading = computed(() => sessionStore.isLoading);
+const isPendingNewSession = computed(() => sessionStore.isPendingNewSession);
 
 onMounted(async () => {
-  await sessionStore.fetchSessions()
-  if (sessions.value.length > 0 && !currentThreadId.value && !isPendingNewSession.value) {
-    handleSelectSession(sessions.value[0].threadId)
+  await sessionStore.fetchSessions();
+  if (
+    sessions.value.length > 0 &&
+    !currentThreadId.value &&
+    !isPendingNewSession.value
+  ) {
+    handleSelectSession(sessions.value[0].threadId);
   }
-})
+});
 
 function handleCreateSession() {
-  sessionStore.startNewSession()
-  chatStore.clearMessages()
+  sessionStore.startNewSession();
+  chatStore.clearMessages();
 }
 
 function handleSelectSession(threadId: string) {
-  sessionStore.setCurrentThread(threadId)
-  chatStore.loadHistory(threadId)
+  sessionStore.setCurrentThread(threadId);
+  chatStore.loadHistory(threadId);
 }
 
 function handleScroll() {
-  if (!scrollContainer.value || isLoadingMore.value || !hasMore.value) return
-  
-  const { scrollTop, scrollHeight, clientHeight } = scrollContainer.value
+  if (!scrollContainer.value || isLoadingMore.value || !hasMore.value) return;
+
+  const { scrollTop, scrollHeight, clientHeight } = scrollContainer.value;
   if (scrollTop + clientHeight >= scrollHeight - 50) {
-    sessionStore.loadMoreSessions()
+    sessionStore.loadMoreSessions();
   }
 }
 </script>
