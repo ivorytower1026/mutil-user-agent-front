@@ -38,13 +38,29 @@
     </template>
     
     <template v-else>
-      <div class="questions-list">
+      <div v-if="interrupt.questions.length > 1" class="question-tabs">
+        <v-chip
+          v-for="(q, idx) in interrupt.questions"
+          :key="idx"
+          :color="currentQuestionIdx === idx ? 'primary' : 'default'"
+          :variant="currentQuestionIdx === idx ? 'flat' : 'outlined'"
+          size="small"
+          class="question-tab"
+          @click="currentQuestionIdx = idx"
+        >
+          {{ getTabLabel(q.question) }}
+          <v-icon v-if="localAnswers[idx]" end size="14" color="success">mdi-check</v-icon>
+        </v-chip>
+      </div>
+      
+      <div class="questions-container">
         <div 
           v-for="(q, qIdx) in interrupt.questions" 
-          :key="qIdx" 
+          :key="qIdx"
+          v-show="qIdx === currentQuestionIdx"
           class="question-item"
         >
-          <div class="question-text">{{ qIdx + 1 }}. {{ q.question }}</div>
+          <div class="question-text">{{ q.question }}</div>
           <div class="question-options">
             <div
               v-for="opt in getQuestionOptions(q)"
@@ -66,6 +82,16 @@
             class="custom-input"
             @update:modelValue="updateCustomAnswer(qIdx)"
           />
+        </div>
+      </div>
+      
+      <div v-if="interrupt.questions.length > 1" class="answers-summary">
+        <div class="summary-title">已选答案：</div>
+        <div class="summary-items">
+          <div v-for="(answer, idx) in localAnswers" :key="idx" class="summary-item">
+            <span class="summary-label">{{ getTabLabel(interrupt.questions![idx].question) }}:</span>
+            <span class="summary-value">{{ getAnswerDisplay(idx, answer) }}</span>
+          </div>
         </div>
       </div>
     </template>
@@ -105,6 +131,14 @@ const displayOptions = computed(() => {
   return props.interrupt.options?.length ? props.interrupt.options : defaultOptions
 })
 
+const currentQuestionIdx = ref(0)
+const localAnswers = ref<string[]>([])
+const customInputs = ref<Record<number, string>>({})
+
+function getTabLabel(question: string): string {
+  return question.slice(0, 5) + (question.length > 5 ? '...' : '')
+}
+
 function getQuestionOptions(q: Question): QuestionOption[] {
   const opts = [...q.options]
   if (q.allow_custom) {
@@ -113,13 +147,24 @@ function getQuestionOptions(q: Question): QuestionOption[] {
   return opts
 }
 
-const localAnswers = ref<string[]>([])
-const customInputs = ref<Record<number, string>>({})
+function getAnswerDisplay(qIdx: number, answer: string): string {
+  if (!answer) return '未选择'
+  const q = props.interrupt.questions?.[qIdx]
+  if (!q) return answer
+  
+  if (answer === '__custom__') {
+    return customInputs.value[qIdx] || '自定义'
+  }
+  
+  const opt = q.options.find(o => o.value === answer)
+  return opt?.label || answer
+}
 
 watch(() => props.interrupt.questions, (questions) => {
   if (questions?.length) {
     localAnswers.value = new Array(questions.length).fill('')
     customInputs.value = {}
+    currentQuestionIdx.value = 0
   }
 }, { immediate: true })
 
@@ -145,6 +190,16 @@ function selectOption(qIdx: number, opt: QuestionOption) {
     localAnswers.value[qIdx] = '__custom__'
   } else {
     localAnswers.value[qIdx] = opt.value
+  }
+  
+  if (props.interrupt.questions && props.interrupt.questions.length > 1) {
+    const allAnswered = localAnswers.value.every(a => a && a.trim() !== '')
+    if (!allAnswered && qIdx < props.interrupt.questions.length - 1) {
+      const nextUnanswered = localAnswers.value.findIndex((a, i) => !a && i > qIdx)
+      if (nextUnanswered !== -1) {
+        currentQuestionIdx.value = nextUnanswered
+      }
+    }
   }
 }
 
@@ -211,7 +266,7 @@ function updateCustomAnswer(qIdx: number) {
 }
 
 .option-card.compact {
-  padding: 8px 12px;
+  padding: 8px 14px;
 }
 
 .option-icon {
@@ -245,10 +300,19 @@ function updateCustomAnswer(qIdx: number) {
   flex-shrink: 0;
 }
 
-.questions-list {
+.question-tabs {
   display: flex;
-  flex-direction: column;
-  gap: 16px;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.question-tab {
+  cursor: pointer;
+}
+
+.questions-container {
+  min-height: 100px;
 }
 
 .question-item {
@@ -260,18 +324,55 @@ function updateCustomAnswer(qIdx: number) {
 .question-text {
   font-weight: 500;
   font-size: 14px;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
   color: rgba(0, 0, 0, 0.87);
+  line-height: 1.5;
 }
 
 .question-options {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 8px;
 }
 
 .custom-input {
   margin-top: 8px;
+}
+
+.answers-summary {
+  margin-top: 16px;
+  padding: 12px;
+  background-color: rgba(33, 150, 243, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(33, 150, 243, 0.1);
+}
+
+.summary-title {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.6);
+  margin-bottom: 8px;
+}
+
+.summary-items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.summary-item {
+  display: flex;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.summary-label {
+  color: rgba(0, 0, 0, 0.6);
+  flex-shrink: 0;
+}
+
+.summary-value {
+  color: rgba(0, 0, 0, 0.87);
+  font-weight: 500;
 }
 
 .v-theme--dark .interrupt-info {
@@ -306,6 +407,23 @@ function updateCustomAnswer(qIdx: number) {
 }
 
 .v-theme--dark .question-text {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.v-theme--dark .answers-summary {
+  background-color: rgba(33, 150, 243, 0.1);
+  border-color: rgba(33, 150, 243, 0.2);
+}
+
+.v-theme--dark .summary-title {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.v-theme--dark .summary-label {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.v-theme--dark .summary-value {
   color: rgba(255, 255, 255, 0.95);
 }
 </style>
