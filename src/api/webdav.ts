@@ -1,6 +1,5 @@
 import { createClient, WebDAVClient } from 'webdav'
 import type { FileItem } from '@/types/file'
-import { useAuthStore } from '@/stores/auth'
 
 let client: WebDAVClient | null = null
 
@@ -24,6 +23,19 @@ export function resetWebDAVClient(): void {
   client = null
 }
 
+function stripUserIdFromPath(filename: string): string {
+  let cleanPath = filename
+  if (cleanPath.startsWith('/')) {
+    cleanPath = cleanPath.substring(1)
+  }
+  const parts = cleanPath.split('/')
+  if (parts.length > 1 && parts[0] && parts[0].match(/^[a-f0-9-]{36}$/i)) {
+    parts.shift()
+  }
+  const result = '/' + parts.join('/')
+  return result === '/' ? '/' : result.replace(/\/+$/, '') || '/'
+}
+
 export async function listDirectory(path: string): Promise<FileItem[]> {
   const dav = getWebDAVClient()
   const items = await dav.getDirectoryContents(path)
@@ -32,14 +44,10 @@ export async function listDirectory(path: string): Promise<FileItem[]> {
     return []
   }
 
-  const userId = useAuthStore().userId
-  const userPrefix = `/${userId}`
-
   return items
-    .filter((item) => item.filename !== userPrefix)
     .map((item) => ({
       name: item.basename,
-      path: item.filename.replace(userPrefix, '') || '/',
+      path: stripUserIdFromPath(item.filename),
       type: item.type as 'file' | 'directory',
       size: item.type === 'file' ? item.size : null,
       modified: item.lastmod,
