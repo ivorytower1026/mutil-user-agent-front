@@ -47,7 +47,7 @@
           <div class="question-text">{{ qIdx + 1 }}. {{ q.question }}</div>
           <div class="question-options">
             <div
-              v-for="opt in q.options"
+              v-for="opt in getQuestionOptions(q)"
               :key="opt.value"
               class="option-card compact"
               :class="{ selected: isOptionSelected(qIdx, opt) }"
@@ -105,6 +105,14 @@ const displayOptions = computed(() => {
   return props.interrupt.options?.length ? props.interrupt.options : defaultOptions
 })
 
+function getQuestionOptions(q: Question): QuestionOption[] {
+  const opts = [...q.options]
+  if (q.allow_custom) {
+    opts.push({ label: '点击输入您的回答', value: '__custom__', allow_custom: true })
+  }
+  return opts
+}
+
 const localAnswers = ref<string[]>([])
 const customInputs = ref<Record<number, string>>({})
 
@@ -122,7 +130,8 @@ watch(localAnswers, () => {
 function isOptionSelected(qIdx: number, opt: QuestionOption): boolean {
   const current = localAnswers.value[qIdx]
   if (opt.allow_custom) {
-    const fixedValues = props.interrupt.questions![qIdx].options
+    const q = props.interrupt.questions![qIdx]
+    const fixedValues = getQuestionOptions(q)
       .filter(o => !o.allow_custom)
       .map(o => o.value)
     return !fixedValues.includes(current) && !!current
@@ -142,9 +151,9 @@ function selectOption(qIdx: number, opt: QuestionOption) {
 function hasCustomInput(qIdx: number): boolean {
   const q = props.interrupt.questions?.[qIdx]
   if (!q) return false
+  if (!q.allow_custom) return false
   const currentAnswer = localAnswers.value[qIdx]
-  const customOpt = q.options.find(o => o.allow_custom)
-  return !!customOpt && currentAnswer === '__custom__'
+  return currentAnswer === '__custom__' || (currentAnswer && !q.options.some(o => o.value === currentAnswer))
 }
 
 function updateCustomAnswer(qIdx: number) {

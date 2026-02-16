@@ -16,6 +16,7 @@ export interface QuestionOption {
 export interface Question {
   question: string
   options: QuestionOption[]
+  allow_custom?: boolean
 }
 
 export interface SSEEvent {

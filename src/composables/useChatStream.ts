@@ -137,7 +137,7 @@ async function sendMessage(threadId: string, message: string) {
           const rawOptions = data.options as InterruptOption[] | undefined
           
           chatStore.setInterrupt({
-            taskName: (data.task_name as string) || 'Unknown',
+            taskName: (data.taskName as string) || (data.task_name as string) || 'Unknown',
             info: event.info || (data.info as string) || '',
             data: event.data,
             options: rawOptions?.map(opt => ({
