@@ -20,11 +20,23 @@ export interface InterruptOption {
   icon?: string
 }
 
+export interface QuestionOption {
+  label: string
+  value: string
+  allow_custom?: boolean
+}
+
+export interface Question {
+  question: string
+  options: QuestionOption[]
+}
+
 export interface Interrupt {
   taskName: string
   info: string
   data?: Record<string, unknown>
   options?: InterruptOption[]
+  questions?: Question[]
 }
 
 export interface Session {

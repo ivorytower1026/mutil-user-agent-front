@@ -7,13 +7,18 @@
     
     <div v-if="interrupt" class="interrupt-selector">
       <div class="interrupt-header">
-        <v-icon color="warning" size="20">mdi-alert-circle-outline</v-icon>
-        <span class="interrupt-title">需要人工确认</span>
+        <v-icon color="warning" size="20">
+          {{ interrupt.questions?.length ? 'mdi-help-circle-outline' : 'mdi-alert-circle-outline' }}
+        </v-icon>
+        <span class="interrupt-title">
+          {{ interrupt.questions?.length ? '请回答以下问题' : '需要人工确认' }}
+        </span>
       </div>
       
       <InterruptDetail
         :interrupt="interrupt"
         v-model="selectedOptionId"
+        v-model:answers="selectedAnswers"
       />
       
       <div class="interrupt-actions">
@@ -21,7 +26,7 @@
           color="primary"
           variant="flat"
           :loading="isLoading"
-          :disabled="!selectedOptionId"
+          :disabled="!canConfirm"
           @click="handleConfirm"
         >
           <v-icon start size="18">mdi-check</v-icon>
@@ -99,7 +104,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, watch } from 'vue'
+import { ref, nextTick, watch, computed } from 'vue'
 import type { Interrupt } from '@/types/chat'
 import InterruptDetail from '@/components/interrupt/InterruptDetail.vue'
 import { MAX_FILE_COUNT, MAX_FILE_SIZE } from '@/types/file'
@@ -121,7 +126,7 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{
   send: [message: string]
-  resume: [action: string]
+  resume: [action: string, answers?: string[]]
   addFiles: [files: File[]]
   removeFile: [index: number]
 }>()
@@ -130,14 +135,24 @@ const inputText = ref('')
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
 const fileInputRef = ref<HTMLInputElement | null>(null)
 const selectedOptionId = ref<string>('')
+const selectedAnswers = ref<string[]>([])
 
 watch(() => props.interrupt, (newInterrupt) => {
-  if (newInterrupt?.options?.length) {
+  if (newInterrupt?.questions?.length) {
+    selectedAnswers.value = new Array(newInterrupt.questions.length).fill('')
+  } else if (newInterrupt?.options?.length) {
     selectedOptionId.value = newInterrupt.options[0].id
   } else {
     selectedOptionId.value = 'continue'
   }
 }, { immediate: true })
+
+const canConfirm = computed(() => {
+  if (props.interrupt?.questions?.length) {
+    return selectedAnswers.value.every(a => a && a.trim() !== '')
+  }
+  return !!selectedOptionId.value
+})
 
 function autoResize() {
   nextTick(() => {
@@ -210,7 +225,11 @@ function handleSend() {
 }
 
 function handleConfirm() {
-  if (selectedOptionId.value) {
+  if (props.interrupt?.questions?.length) {
+    if (canConfirm.value) {
+      emit('resume', 'answer', [...selectedAnswers.value])
+    }
+  } else {
     emit('resume', selectedOptionId.value)
   }
 }

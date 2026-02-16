@@ -57,6 +57,7 @@ function mapEventToSSEEvent(parsed: ParsedSSE): SSEEvent {
     message: data.message as string | undefined,
     data: data.data as Record<string, unknown> | undefined,
     title: data.title as string | undefined,
+    questions: data.questions as SSEEvent['questions'],
   }
 }
 
@@ -118,10 +119,16 @@ export async function* streamChat(
 
 export async function* streamResume(
   threadId: string,
-  optionId: string,
+  action: string,
+  answers?: string[],
   signal?: AbortSignal
 ): AsyncGenerator<SSEEvent> {
   const token = getToken()
+  
+  const body: Record<string, unknown> = { action }
+  if (answers) {
+    body.answers = answers
+  }
   
   const response = await fetch(`${BASE_URL}/api/resume/${threadId}`, {
     method: 'POST',
@@ -129,7 +136,7 @@ export async function* streamResume(
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {})
     },
-    body: JSON.stringify({ action: optionId } as ResumeRequest),
+    body: JSON.stringify(body),
     signal
   })
 

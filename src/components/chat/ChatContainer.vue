@@ -49,9 +49,9 @@ async function handleSend(message: string) {
   }
 }
 
-function handleResume(optionId: string) {
+function handleResume(action: string, answers?: string[]) {
   if (sessionStore.currentThreadId) {
-    resumeInterrupt(sessionStore.currentThreadId, optionId)
+    resumeInterrupt(sessionStore.currentThreadId, action, answers)
   }
 }
 </script>

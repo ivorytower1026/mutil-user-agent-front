@@ -91,14 +91,14 @@ async function sendMessage(threadId: string, message: string) {
     }
   }
 
-  async function resumeInterrupt(threadId: string, optionId: string) {
+  async function resumeInterrupt(threadId: string, action: string, answers?: string[]) {
     chatStore.setLoading(true)
     chatStore.clearInterrupt()
     
     abortController.value = new AbortController()
 
     try {
-      for await (const event of streamResume(threadId, optionId, abortController.value.signal)) {
+      for await (const event of streamResume(threadId, action, answers, abortController.value.signal)) {
         handleEvent(event)
       }
     } catch (e: unknown) {
@@ -145,7 +145,8 @@ async function sendMessage(threadId: string, message: string) {
               label: opt.label || String(opt),
               description: opt.description,
               icon: opt.icon
-            }))
+            })),
+            questions: event.questions,
           })
           if (sessionStore.currentThreadId) {
             sessionStore.updateSessionStatus(sessionStore.currentThreadId, 'interrupted')

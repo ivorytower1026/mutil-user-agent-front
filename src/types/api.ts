@@ -47,6 +47,7 @@ export interface ApiMessage {
 
 export interface ResumeRequest {
   action: string
+  answers?: string[]
 }
 
 export interface ThreadListItem {

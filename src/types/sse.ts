@@ -7,6 +7,17 @@ export type SSEEventName =
   | 'error'
   | 'end'
 
+export interface QuestionOption {
+  label: string
+  value: string
+  allow_custom?: boolean
+}
+
+export interface Question {
+  question: string
+  options: QuestionOption[]
+}
+
 export interface SSEEvent {
   event: SSEEventName
   content?: string
@@ -17,4 +28,5 @@ export interface SSEEvent {
   message?: string
   data?: Record<string, unknown>
   title?: string
+  questions?: Question[]
 }
