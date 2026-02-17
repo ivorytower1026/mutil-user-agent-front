@@ -31,7 +31,7 @@
         class="scroll-to-bottom"
         @click="scrollToBottom"
       >
-        <v-icon color="white">mdi-arrow-down</v-icon>
+        <v-icon color="grey">mdi-arrow-down</v-icon>
       </button>
     </transition>
   </div>
@@ -155,7 +155,7 @@ watch(
   width: 30px;
   height: 50px;
   border-radius: 50%;
-  background-color: rgb(var(--v-theme-primary));
+  background-color: rgb(var(--v-theme-surface));
   border: none;
   cursor: pointer;
   display: flex;
