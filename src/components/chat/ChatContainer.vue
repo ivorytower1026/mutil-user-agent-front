@@ -11,6 +11,7 @@
       :interrupt="interrupt"
       :disabled="isLoading"
       :pending-files="pendingFiles"
+      v-model="mode"
       @send="handleSend"
       @resume="handleResume"
       @add-files="addFiles"
@@ -36,6 +37,11 @@ const isLoading = computed(() => chatStore.isLoading)
 const interrupt = computed(() => chatStore.interrupt)
 const currentThreadId = computed(() => sessionStore.currentThreadId)
 const isPendingNewSession = computed(() => sessionStore.isPendingNewSession)
+
+const mode = computed({
+  get: () => chatStore.mode,
+  set: (value) => chatStore.setMode(value)
+})
 
 async function handleSend(message: string) {
   let threadId = sessionStore.currentThreadId

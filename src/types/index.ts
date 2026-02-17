@@ -1,4 +1,4 @@
 export * from './api'
 export * from './chat'
-export * from './sse'
+export { type SSEEvent, type SSEEventName } from './sse'
 export * from './file'

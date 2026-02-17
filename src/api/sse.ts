@@ -1,4 +1,5 @@
-import type { SSEEvent, ResumeRequest } from '@/types'
+import type { SSEEvent } from '@/types'
+import type { AgentMode } from '@/types/chat'
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
 
@@ -65,7 +66,8 @@ export async function* streamChat(
   threadId: string,
   message: string,
   files?: string[],
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  mode: AgentMode = 'build'
 ): AsyncGenerator<SSEEvent> {
   const token = getToken()
   
@@ -75,7 +77,7 @@ export async function* streamChat(
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {})
     },
-    body: JSON.stringify({ message, files }),
+    body: JSON.stringify({ message, files, mode }),
     signal
   })
 

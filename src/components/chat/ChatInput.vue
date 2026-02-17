@@ -64,6 +64,15 @@
       </div>
       
       <div class="chat-input-container" @click="textareaRef?.focus()">
+        <button 
+          class="mode-btn" 
+          :disabled="disabled" 
+          @click.stop="toggleMode"
+          :title="modelValue === 'plan' ? '点击切换到构建模式' : '点击切换到思考模式'"
+        >
+          <v-icon size="18">{{ modelValue === 'plan' ? 'mdi-head-lightbulb' : 'mdi-hammer-wrench' }}</v-icon>
+          <span class="mode-label">{{ modelValue === 'plan' ? '思考' : '构建' }}</span>
+        </button>
         <button class="attach-btn" :disabled="disabled" @click.stop="triggerFileInput">
           <v-icon size="20">mdi-paperclip</v-icon>
         </button>
@@ -96,7 +105,7 @@
       </div>
       
       <p class="hint-text">
-        按 Enter 发送，Shift + Enter 换行，支持粘贴文件
+        按 Enter 发送，Shift + Enter 换行，Tab 切换模式，支持粘贴文件
         <span v-if="pendingFiles.length > 0"> | 已选 {{ pendingFiles.length }}/5 个文件</span>
       </p>
     </template>
@@ -105,7 +114,7 @@
 
 <script setup lang="ts">
 import { ref, nextTick, watch, computed } from 'vue'
-import type { Interrupt } from '@/types/chat'
+import type { Interrupt, AgentMode } from '@/types/chat'
 import InterruptDetail from '@/components/interrupt/InterruptDetail.vue'
 import { MAX_FILE_COUNT, MAX_FILE_SIZE } from '@/types/file'
 import type { PendingFile } from '@/composables/useChatStream'
@@ -116,12 +125,14 @@ const props = withDefaults(defineProps<{
   isLoading?: boolean
   interrupt?: Interrupt | null
   pendingFiles?: PendingFile[]
+  modelValue?: AgentMode
 }>(), {
   disabled: false,
   placeholder: '给 AI 发送消息',
   isLoading: false,
   interrupt: null,
-  pendingFiles: () => []
+  pendingFiles: () => [],
+  modelValue: 'build'
 })
 
 const emit = defineEmits<{
@@ -129,6 +140,7 @@ const emit = defineEmits<{
   resume: [action: string, answers?: string[]]
   addFiles: [files: File[]]
   removeFile: [index: number]
+  'update:modelValue': [mode: AgentMode]
 }>()
 
 const inputText = ref('')
@@ -164,7 +176,10 @@ function autoResize() {
 }
 
 function handleKeydown(e: KeyboardEvent) {
-  if (e.key === 'Enter' && !e.shiftKey) {
+  if (e.key === 'Tab') {
+    e.preventDefault()
+    toggleMode()
+  } else if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault()
     handleSend()
   }
@@ -232,6 +247,11 @@ function handleConfirm() {
   } else {
     emit('resume', selectedOptionId.value)
   }
+}
+
+function toggleMode() {
+  const newMode: AgentMode = props.modelValue === 'plan' ? 'build' : 'plan'
+  emit('update:modelValue', newMode)
 }
 </script>
 
@@ -359,6 +379,35 @@ function handleConfirm() {
   cursor: not-allowed;
 }
 
+.mode-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border: none;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  font-size: 13px;
+  cursor: pointer;
+  color: rgba(0, 0, 0, 0.6);
+  transition: all 0.2s;
+}
+
+.mode-btn:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.12);
+  color: rgba(0, 0, 0, 0.87);
+}
+
+.mode-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.mode-label {
+  font-weight: 500;
+}
+
 .chat-textarea {
   flex: 1;
   border: none;
@@ -471,5 +520,15 @@ function handleConfirm() {
 
 .v-theme--dark .hint-text {
   color: rgba(255, 255, 255, 0.4);
+}
+
+.v-theme--dark .mode-btn {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.v-theme--dark .mode-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.16);
+  color: rgba(255, 255, 255, 0.9);
 }
 </style>

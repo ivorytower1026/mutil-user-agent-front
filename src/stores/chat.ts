@@ -1,7 +1,18 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { Message, Interrupt } from '@/types/chat'
+import type { Message, Interrupt, AgentMode } from '@/types/chat'
 import { chatApi } from '@/api'
+
+const DEFAULT_MODE: AgentMode = 'build'
+const STORAGE_KEY = 'agent_mode'
+
+function getStoredMode(): AgentMode {
+  const stored = localStorage.getItem(STORAGE_KEY)
+  if (stored === 'plan' || stored === 'build') {
+    return stored
+  }
+  return DEFAULT_MODE
+}
 
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
@@ -14,6 +25,7 @@ export const useChatStore = defineStore('chat', () => {
   const error = ref<string | null>(null)
   const streamingContent = ref('')
   const needsNewline = ref(false)
+  const mode = ref<AgentMode>(getStoredMode())
 
   function addUserMessage(content: string) {
     messages.value.push({
@@ -86,7 +98,7 @@ export const useChatStore = defineStore('chat', () => {
     interrupt.value = null
   }
 
-  function setLoading(value: boolean) {
+function setLoading(value: boolean) {
     isLoading.value = value
   }
 
@@ -97,6 +109,11 @@ export const useChatStore = defineStore('chat', () => {
   function clearMessages() {
     messages.value = []
     streamingContent.value = ''
+  }
+
+  function setMode(newMode: AgentMode) {
+    mode.value = newMode
+    localStorage.setItem(STORAGE_KEY, newMode)
   }
 
   async function loadHistory(threadId: string) {
@@ -113,12 +130,13 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
-  return {
+return {
     messages,
     interrupt,
     isLoading,
     error,
     streamingContent,
+    mode,
     addUserMessage,
     startAssistantMessage,
     appendAssistantContent,
@@ -130,6 +148,7 @@ export const useChatStore = defineStore('chat', () => {
     setError,
     clearMessages,
     loadHistory,
-    markSegmentEnd
+    markSegmentEnd,
+    setMode
   }
 })

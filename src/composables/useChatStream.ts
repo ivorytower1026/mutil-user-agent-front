@@ -76,7 +76,7 @@ async function sendMessage(threadId: string, message: string) {
     abortController.value = new AbortController()
 
     try {
-      for await (const event of streamChat(threadId, message, filePaths.length > 0 ? filePaths : undefined, abortController.value.signal)) {
+      for await (const event of streamChat(threadId, message, filePaths.length > 0 ? filePaths : undefined, abortController.value.signal, chatStore.mode)) {
         handleEvent(event)
       }
     } catch (e: unknown) {

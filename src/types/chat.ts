@@ -1,3 +1,5 @@
+export type AgentMode = 'plan' | 'build'
+
 export interface Message {
   id: string
   role: 'user' | 'assistant' | 'tool' | 'system'
