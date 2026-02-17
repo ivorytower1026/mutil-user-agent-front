@@ -4,23 +4,27 @@
       <v-progress-circular indeterminate size="16" width="2" />
       <span>AI 正在思考中...</span>
     </div>
-    
+
     <div v-if="interrupt" class="interrupt-selector">
       <div class="interrupt-header">
         <v-icon color="warning" size="20">
-          {{ interrupt.questions?.length ? 'mdi-help-circle-outline' : 'mdi-alert-circle-outline' }}
+          {{
+            interrupt.questions?.length
+              ? "mdi-help-circle-outline"
+              : "mdi-alert-circle-outline"
+          }}
         </v-icon>
         <span class="interrupt-title">
-          {{ interrupt.questions?.length ? '请回答以下问题' : '需要人工确认' }}
+          {{ interrupt.questions?.length ? "请回答以下问题" : "需要人工确认" }}
         </span>
       </div>
-      
+
       <InterruptDetail
         :interrupt="interrupt"
         v-model="selectedOptionId"
         v-model:answers="selectedAnswers"
       />
-      
+
       <div class="interrupt-actions">
         <v-btn
           color="primary"
@@ -34,56 +38,51 @@
         </v-btn>
       </div>
     </div>
-    
+
     <template v-else>
       <div v-if="pendingFiles.length > 0" class="pending-files">
-        <div 
-          v-for="(item, index) in pendingFiles" 
-          :key="index" 
+        <div
+          v-for="(item, index) in pendingFiles"
+          :key="index"
           class="file-tag"
           :class="{ 'file-error': item.status === 'error' }"
         >
           <v-icon size="14" class="mr-1">mdi-file-document</v-icon>
           <span class="file-name">{{ item.file.name }}</span>
-          <v-progress-circular 
-            v-if="item.status === 'uploading'" 
-            size="14" 
-            width="2" 
-            indeterminate 
+          <v-progress-circular
+            v-if="item.status === 'uploading'"
+            size="14"
+            width="2"
+            indeterminate
             class="ml-1"
           />
-          <v-icon 
-            v-else 
-            size="14" 
-            class="remove-btn" 
+          <v-icon
+            v-else
+            size="14"
+            class="remove-btn"
             @click="$emit('removeFile', index)"
           >
             mdi-close
           </v-icon>
         </div>
       </div>
-      
+
       <div class="chat-input-container" @click="textareaRef?.focus()">
-        <button 
-          class="mode-btn" 
-          :disabled="disabled" 
-          @click.stop="toggleMode"
-          :title="modelValue === 'plan' ? '点击切换到构建模式' : '点击切换到思考模式'"
+        <button
+          class="attach-btn"
+          :disabled="disabled"
+          @click.stop="triggerFileInput"
         >
-          <v-icon size="18">{{ modelValue === 'plan' ? 'mdi-head-lightbulb' : 'mdi-hammer-wrench' }}</v-icon>
-          <span class="mode-label">{{ modelValue === 'plan' ? '思考' : '构建' }}</span>
-        </button>
-        <button class="attach-btn" :disabled="disabled" @click.stop="triggerFileInput">
           <v-icon size="20">mdi-paperclip</v-icon>
         </button>
-        <input 
-          ref="fileInputRef" 
-          type="file" 
-          multiple 
-          hidden 
+        <input
+          ref="fileInputRef"
+          type="file"
+          multiple
+          hidden
           @change="handleFileSelect"
         />
-        
+
         <textarea
           ref="textareaRef"
           v-model="inputText"
@@ -96,162 +95,186 @@
           @paste="handlePaste"
         />
         <button
+          class="mode-btn"
+          :disabled="disabled"
+          @click.stop="toggleMode"
+          :title="
+            modelValue === 'plan' ? '点击切换到构建模式' : '点击切换到思考模式'
+          "
+        >
+          <v-icon size="16">{{
+            modelValue === "plan" ? "mdi-head-lightbulb" : "mdi-hammer-wrench"
+          }}</v-icon>
+        </button>
+        <button
           class="send-btn"
-          :disabled="disabled || (!inputText.trim() && pendingFiles.length === 0)"
+          :disabled="
+            disabled || (!inputText.trim() && pendingFiles.length === 0)
+          "
           @click="handleSend"
         >
           <v-icon size="20">mdi-arrow-up</v-icon>
         </button>
       </div>
-      
+
       <p class="hint-text">
         按 Enter 发送，Shift + Enter 换行，Tab 切换模式，支持粘贴文件
-        <span v-if="pendingFiles.length > 0"> | 已选 {{ pendingFiles.length }}/5 个文件</span>
+        <span v-if="pendingFiles.length > 0">
+          | 已选 {{ pendingFiles.length }}/5 个文件</span
+        >
       </p>
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, watch, computed } from 'vue'
-import type { Interrupt, AgentMode } from '@/types/chat'
-import InterruptDetail from '@/components/interrupt/InterruptDetail.vue'
-import { MAX_FILE_COUNT, MAX_FILE_SIZE } from '@/types/file'
-import type { PendingFile } from '@/composables/useChatStream'
+import { ref, nextTick, watch, computed } from "vue";
+import type { Interrupt, AgentMode } from "@/types/chat";
+import InterruptDetail from "@/components/interrupt/InterruptDetail.vue";
+import { MAX_FILE_COUNT, MAX_FILE_SIZE } from "@/types/file";
+import type { PendingFile } from "@/composables/useChatStream";
 
-const props = withDefaults(defineProps<{
-  disabled?: boolean
-  placeholder?: string
-  isLoading?: boolean
-  interrupt?: Interrupt | null
-  pendingFiles?: PendingFile[]
-  modelValue?: AgentMode
-}>(), {
-  disabled: false,
-  placeholder: '给 AI 发送消息',
-  isLoading: false,
-  interrupt: null,
-  pendingFiles: () => [],
-  modelValue: 'build'
-})
+const props = withDefaults(
+  defineProps<{
+    disabled?: boolean;
+    placeholder?: string;
+    isLoading?: boolean;
+    interrupt?: Interrupt | null;
+    pendingFiles?: PendingFile[];
+    modelValue?: AgentMode;
+  }>(),
+  {
+    disabled: false,
+    placeholder: "给 AI 发送消息",
+    isLoading: false,
+    interrupt: null,
+    pendingFiles: () => [],
+    modelValue: "build",
+  }
+);
 
 const emit = defineEmits<{
-  send: [message: string]
-  resume: [action: string, answers?: string[]]
-  addFiles: [files: File[]]
-  removeFile: [index: number]
-  'update:modelValue': [mode: AgentMode]
-}>()
+  send: [message: string];
+  resume: [action: string, answers?: string[]];
+  addFiles: [files: File[]];
+  removeFile: [index: number];
+  "update:modelValue": [mode: AgentMode];
+}>();
 
-const inputText = ref('')
-const textareaRef = ref<HTMLTextAreaElement | null>(null)
-const fileInputRef = ref<HTMLInputElement | null>(null)
-const selectedOptionId = ref<string>('')
-const selectedAnswers = ref<string[]>([])
+const inputText = ref("");
+const textareaRef = ref<HTMLTextAreaElement | null>(null);
+const fileInputRef = ref<HTMLInputElement | null>(null);
+const selectedOptionId = ref<string>("");
+const selectedAnswers = ref<string[]>([]);
 
-watch(() => props.interrupt, (newInterrupt) => {
-  if (newInterrupt?.questions?.length) {
-    selectedAnswers.value = new Array(newInterrupt.questions.length).fill('')
-  } else if (newInterrupt?.options?.length) {
-    selectedOptionId.value = newInterrupt.options[0].id
-  } else {
-    selectedOptionId.value = 'continue'
-  }
-}, { immediate: true })
+watch(
+  () => props.interrupt,
+  (newInterrupt) => {
+    if (newInterrupt?.questions?.length) {
+      selectedAnswers.value = new Array(newInterrupt.questions.length).fill("");
+    } else if (newInterrupt?.options?.length) {
+      selectedOptionId.value = newInterrupt.options[0].id;
+    } else {
+      selectedOptionId.value = "continue";
+    }
+  },
+  { immediate: true }
+);
 
 const canConfirm = computed(() => {
   if (props.interrupt?.questions?.length) {
-    return selectedAnswers.value.every(a => a && a.trim() !== '')
+    return selectedAnswers.value.every((a) => a && a.trim() !== "");
   }
-  return !!selectedOptionId.value
-})
+  return !!selectedOptionId.value;
+});
 
 function autoResize() {
   nextTick(() => {
     if (textareaRef.value) {
-      textareaRef.value.style.height = 'auto'
-      textareaRef.value.style.height = Math.min(textareaRef.value.scrollHeight, 200) + 'px'
+      textareaRef.value.style.height = "auto";
+      textareaRef.value.style.height =
+        Math.min(textareaRef.value.scrollHeight, 200) + "px";
     }
-  })
+  });
 }
 
 function handleKeydown(e: KeyboardEvent) {
-  if (e.key === 'Tab') {
-    e.preventDefault()
-    toggleMode()
-  } else if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault()
-    handleSend()
+  if (e.key === "Tab") {
+    e.preventDefault();
+    toggleMode();
+  } else if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    handleSend();
   }
 }
 
 function triggerFileInput() {
-  fileInputRef.value?.click()
+  fileInputRef.value?.click();
 }
 
 function processFiles(files: File[]) {
-  const validFiles = files.filter(f => f.size <= MAX_FILE_SIZE)
+  const validFiles = files.filter((f) => f.size <= MAX_FILE_SIZE);
   if (validFiles.length < files.length) {
-    console.warn('部分文件超过 50MB，已跳过')
+    console.warn("部分文件超过 50MB，已跳过");
   }
-  
-  const remaining = MAX_FILE_COUNT - props.pendingFiles.length
-  emit('addFiles', validFiles.slice(0, remaining))
+
+  const remaining = MAX_FILE_COUNT - props.pendingFiles.length;
+  emit("addFiles", validFiles.slice(0, remaining));
 }
 
 function handleFileSelect(e: Event) {
-  const target = e.target as HTMLInputElement
-  const files = Array.from(target.files || [])
-  processFiles(files)
-  target.value = ''
+  const target = e.target as HTMLInputElement;
+  const files = Array.from(target.files || []);
+  processFiles(files);
+  target.value = "";
 }
 
 function handlePaste(e: ClipboardEvent) {
-  const items = e.clipboardData?.items
-  if (!items) return
-  
-  const files: File[] = []
+  const items = e.clipboardData?.items;
+  if (!items) return;
+
+  const files: File[] = [];
   for (const item of items) {
-    if (item.kind === 'file') {
-      const file = item.getAsFile()
+    if (item.kind === "file") {
+      const file = item.getAsFile();
       if (file) {
-        files.push(file)
+        files.push(file);
       }
     }
   }
-  
+
   if (files.length > 0) {
-    e.preventDefault()
-    processFiles(files)
+    e.preventDefault();
+    processFiles(files);
   }
 }
 
 function handleSend() {
-  const message = inputText.value.trim()
+  const message = inputText.value.trim();
   if ((message || props.pendingFiles.length > 0) && !props.disabled) {
-    emit('send', message)
-    inputText.value = ''
+    emit("send", message);
+    inputText.value = "";
     nextTick(() => {
       if (textareaRef.value) {
-        textareaRef.value.style.height = 'auto'
+        textareaRef.value.style.height = "auto";
       }
-    })
+    });
   }
 }
 
 function handleConfirm() {
   if (props.interrupt?.questions?.length) {
     if (canConfirm.value) {
-      emit('resume', 'answer', [...selectedAnswers.value])
+      emit("resume", "answer", [...selectedAnswers.value]);
     }
   } else {
-    emit('resume', selectedOptionId.value)
+    emit("resume", selectedOptionId.value);
   }
 }
 
 function toggleMode() {
-  const newMode: AgentMode = props.modelValue === 'plan' ? 'build' : 'plan'
-  emit('update:modelValue', newMode)
+  const newMode: AgentMode = props.modelValue === "plan" ? "build" : "plan";
+  emit("update:modelValue", newMode);
 }
 </script>
 
@@ -381,31 +404,27 @@ function toggleMode() {
 
 .mode-btn {
   flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 6px 10px;
-  border: none;
-  background: rgba(0, 0, 0, 0.08);
-  border-radius: 12px;
-  font-size: 13px;
-  cursor: pointer;
-  color: rgba(0, 0, 0, 0.6);
+  justify-content: center;
+  color: rgba(0, 0, 0, 0.4);
   transition: all 0.2s;
 }
 
 .mode-btn:hover:not(:disabled) {
-  background: rgba(0, 0, 0, 0.12);
-  color: rgba(0, 0, 0, 0.87);
+  background: rgba(0, 0, 0, 0.06);
+  color: rgba(0, 0, 0, 0.7);
 }
 
 .mode-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-.mode-label {
-  font-weight: 500;
 }
 
 .chat-textarea {
@@ -523,12 +542,11 @@ function toggleMode() {
 }
 
 .v-theme--dark .mode-btn {
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .v-theme--dark .mode-btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.16);
-  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
 }
 </style>
