@@ -141,8 +141,8 @@ function getTabLabel(question: string): string {
 
 function getQuestionOptions(q: Question): QuestionOption[] {
   const opts = [...q.options]
-  if (q.allow_custom) {
-    opts.push({ label: '点击输入您的回答', value: '__custom__', allow_custom: true })
+  if (q.allow_custom !== false) {
+    opts.push({ label: '输入您的回答', value: '__custom__', allow_custom: true })
   }
   return opts
 }
@@ -206,9 +206,9 @@ function selectOption(qIdx: number, opt: QuestionOption) {
 function hasCustomInput(qIdx: number): boolean {
   const q = props.interrupt.questions?.[qIdx]
   if (!q) return false
-  if (!q.allow_custom) return false
+  if (q.allow_custom === false) return false
   const currentAnswer = localAnswers.value[qIdx]
-  return currentAnswer === '__custom__' || (currentAnswer && !q.options.some(o => o.value === currentAnswer))
+  return currentAnswer === '__custom__' || (!!currentAnswer && !q.options.some(o => o.value === currentAnswer))
 }
 
 function updateCustomAnswer(qIdx: number) {
