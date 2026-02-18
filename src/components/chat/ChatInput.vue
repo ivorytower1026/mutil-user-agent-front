@@ -303,32 +303,32 @@ function toggleMode() {
 .interrupt-selector {
   max-width: 768px;
   margin: 0 auto;
-  padding: 16px;
+  padding: 10px;
   background-color: rgba(0, 0, 0, 0.02);
-  border-radius: 16px;
+  border-radius: 12px;
   border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .interrupt-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-  padding-bottom: 12px;
+  gap: 6px;
+  margin-bottom: 6px;
+  padding-bottom: 6px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .interrupt-title {
   font-weight: 500;
-  font-size: 15px;
+  font-size: 13px;
 }
 
 .interrupt-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
-  margin-top: 16px;
-  padding-top: 12px;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 6px;
   border-top: 1px solid rgba(0, 0, 0, 0.06);
 }
 
@@ -553,4 +553,35 @@ function toggleMode() {
   background: rgba(255, 255, 255, 0.1);
   color: rgba(255, 255, 255, 0.7);
 }
+
+/* 滚动条整体 */
+.chat-textarea::-webkit-scrollbar {
+  width: 6px;
+}
+
+/* 滚动条轨道 */
+.chat-textarea::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* 滚动条滑块 */
+.chat-textarea::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+/* 滑块悬停 */
+.chat-textarea::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.4);
+}
+
+/* 暗色主题适配 */
+.v-theme--dark .chat-textarea::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.v-theme--dark .chat-textarea::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.4);
+}
+
 </style>

@@ -54,35 +54,39 @@
       </div>
       
       <div class="questions-container">
-        <div 
-          v-for="(q, qIdx) in interrupt.questions" 
-          :key="qIdx"
-          v-show="qIdx === currentQuestionIdx"
-          class="question-item"
-        >
-          <div class="question-text">{{ q.question }}</div>
-          <div class="question-options">
-            <div
-              v-for="opt in getQuestionOptions(q)"
-              :key="opt.value"
-              class="option-card compact"
-              :class="{ selected: isOptionSelected(qIdx, opt) }"
-              @click="selectOption(qIdx, opt)"
-            >
-              <span class="option-label">{{ opt.label }}</span>
+        <template v-for="(q, qIdx) in interrupt.questions" :key="qIdx">
+          <div 
+            v-if="qIdx === currentQuestionIdx"
+            class="question-item"
+          >
+            <div class="question-text">{{ q.question }}</div>
+            <div class="question-options">
+              <div
+                v-for="opt in getQuestionOptions(q)"
+                :key="opt.value"
+                class="option-card compact"
+                :class="{ selected: isOptionSelected(qIdx, opt), 'is-custom': opt.allow_custom && isCustomMode(qIdx) }"
+                @click="selectOption(qIdx, opt)"
+              >
+                <template v-if="opt.allow_custom && isCustomMode(qIdx)">
+                  <input
+                    ref="customInputRefs"
+                    v-model="customInputs[qIdx]"
+                    type="text"
+                    class="inline-input"
+                    placeholder="请输入..."
+                    @keydown.enter="handleCustomEnter(qIdx, $event)"
+                    @blur="handleCustomBlur(qIdx)"
+                    @click.stop
+                  />
+                </template>
+                <template v-else>
+                  <span class="option-label">{{ opt.label }}</span>
+                </template>
+              </div>
             </div>
           </div>
-          <v-text-field
-            v-if="hasCustomInput(qIdx)"
-            v-model="customInputs[qIdx]"
-            density="compact"
-            variant="outlined"
-            placeholder="请输入您的回答..."
-            hide-details
-            class="custom-input"
-            @update:modelValue="updateCustomAnswer(qIdx)"
-          />
-        </div>
+        </template>
       </div>
       
       <div v-if="interrupt.questions.length > 1" class="answers-summary">
@@ -99,7 +103,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
+import { ref, watch, nextTick, computed } from 'vue'
 import type { Interrupt, InterruptOption, Question, QuestionOption } from '@/types/chat'
 
 const props = defineProps<{
@@ -134,6 +138,8 @@ const displayOptions = computed(() => {
 const currentQuestionIdx = ref(0)
 const localAnswers = ref<string[]>([])
 const customInputs = ref<Record<number, string>>({})
+const customMode = ref<Record<number, boolean>>({})
+const customInputRefs = ref<HTMLInputElement[]>([])
 
 function getTabLabel(question: string): string {
   return question.slice(0, 5) + (question.length > 5 ? '...' : '')
@@ -141,9 +147,7 @@ function getTabLabel(question: string): string {
 
 function getQuestionOptions(q: Question): QuestionOption[] {
   const opts = [...q.options]
-  if (q.allow_custom !== false) {
-    opts.push({ label: '输入您的回答', value: '__custom__', allow_custom: true })
-  }
+  opts.push({ label: '输入您的回答', value: '__custom__', allow_custom: true })
   return opts
 }
 
@@ -164,6 +168,7 @@ watch(() => props.interrupt.questions, (questions) => {
   if (questions?.length) {
     localAnswers.value = new Array(questions.length).fill('')
     customInputs.value = {}
+    customMode.value = {}
     currentQuestionIdx.value = 0
   }
 }, { immediate: true })
@@ -175,63 +180,87 @@ watch(localAnswers, () => {
 function isOptionSelected(qIdx: number, opt: QuestionOption): boolean {
   const current = localAnswers.value[qIdx]
   if (opt.allow_custom) {
-    const q = props.interrupt.questions![qIdx]
-    const fixedValues = getQuestionOptions(q)
-      .filter(o => !o.allow_custom)
-      .map(o => o.value)
-    return !fixedValues.includes(current) && !!current
+    return customMode.value[qIdx] === true
   }
   return current === opt.value
 }
 
+function isCustomMode(qIdx: number): boolean {
+  return customMode.value[qIdx] === true
+}
+
 function selectOption(qIdx: number, opt: QuestionOption) {
   if (opt.allow_custom) {
+    customMode.value[qIdx] = true
     customInputs.value[qIdx] = ''
-    localAnswers.value[qIdx] = '__custom__'
+    localAnswers.value[qIdx] = ''
+    nextTick(() => {
+      const input = customInputRefs.value?.[0]
+      if (input) {
+        input.focus()
+      }
+    })
   } else {
+    customMode.value[qIdx] = false
     localAnswers.value[qIdx] = opt.value
+    goToNextQuestion(qIdx)
   }
-  
+}
+
+function handleCustomEnter(qIdx: number, _event: KeyboardEvent) {
+  const value = customInputs.value[qIdx]?.trim()
+  if (value) {
+    localAnswers.value[qIdx] = value
+    goToNextQuestion(qIdx)
+  }
+}
+
+function handleCustomBlur(qIdx: number) {
+  const value = customInputs.value[qIdx]?.trim()
+  if (value) {
+    localAnswers.value[qIdx] = value
+  } else {
+    localAnswers.value[qIdx] = ''
+    customMode.value[qIdx] = false
+  }
+}
+
+function goToNextQuestion(currentIdx: number) {
   if (props.interrupt.questions && props.interrupt.questions.length > 1) {
     const allAnswered = localAnswers.value.every(a => a && a.trim() !== '')
-    if (!allAnswered && qIdx < props.interrupt.questions.length - 1) {
-      const nextUnanswered = localAnswers.value.findIndex((a, i) => !a && i > qIdx)
+    if (!allAnswered && currentIdx < props.interrupt.questions.length - 1) {
+      const nextUnanswered = localAnswers.value.findIndex((a, i) => !a && i > currentIdx)
       if (nextUnanswered !== -1) {
         currentQuestionIdx.value = nextUnanswered
+      } else {
+        const firstUnanswered = localAnswers.value.findIndex(a => !a)
+        if (firstUnanswered !== -1 && firstUnanswered !== currentIdx) {
+          currentQuestionIdx.value = firstUnanswered
+        }
       }
     }
   }
-}
-
-function hasCustomInput(qIdx: number): boolean {
-  const q = props.interrupt.questions?.[qIdx]
-  if (!q) return false
-  if (q.allow_custom === false) return false
-  const currentAnswer = localAnswers.value[qIdx]
-  return currentAnswer === '__custom__' || (!!currentAnswer && !q.options.some(o => o.value === currentAnswer))
-}
-
-function updateCustomAnswer(qIdx: number) {
-  localAnswers.value[qIdx] = customInputs.value[qIdx] || ''
 }
 </script>
 
 <style scoped>
 .interrupt-detail {
   width: 100%;
+  max-height: 240px;
+  overflow-y: auto;
 }
 
 .interrupt-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: 8px;
+  margin-bottom: 8px;
   flex-wrap: wrap;
 }
 
 .interrupt-info {
-  font-size: 14px;
+  font-size: 13px;
   color: rgba(0, 0, 0, 0.8);
   flex: 1;
   min-width: 200px;
@@ -240,17 +269,17 @@ function updateCustomAnswer(qIdx: number) {
 .options-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
 .option-card {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
+  gap: 8px;
+  padding: 6px 10px;
   background-color: rgba(0, 0, 0, 0.03);
   border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -266,7 +295,34 @@ function updateCustomAnswer(qIdx: number) {
 }
 
 .option-card.compact {
-  padding: 8px 14px;
+  padding: 5px 10px;
+}
+
+.option-card.is-custom {
+  padding: 2px 6px;
+  border-color: #2196F3;
+  background-color: rgba(33, 150, 243, 0.08);
+}
+
+.inline-input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 500;
+  color: inherit;
+  width: 100%;
+  padding: 3px 0;
+  font-family: inherit;
+}
+
+.inline-input::placeholder {
+  color: rgba(0, 0, 0, 0.4);
+  font-weight: 400;
+}
+
+.v-theme--dark .inline-input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .option-icon {
@@ -286,14 +342,14 @@ function updateCustomAnswer(qIdx: number) {
 
 .option-label {
   font-weight: 500;
-  font-size: 14px;
+  font-size: 13px;
   color: rgba(0, 0, 0, 0.87);
 }
 
 .option-desc {
-  font-size: 12px;
+  font-size: 11px;
   color: rgba(0, 0, 0, 0.5);
-  margin-top: 2px;
+  margin-top: 1px;
 }
 
 .check-icon {
@@ -302,8 +358,8 @@ function updateCustomAnswer(qIdx: number) {
 
 .question-tabs {
   display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: 6px;
+  margin-bottom: 8px;
   flex-wrap: wrap;
 }
 
@@ -312,57 +368,57 @@ function updateCustomAnswer(qIdx: number) {
 }
 
 .questions-container {
-  min-height: 100px;
+  min-height: 60px;
 }
 
 .question-item {
-  padding: 12px;
+  padding: 8px;
   background-color: rgba(0, 0, 0, 0.02);
-  border-radius: 8px;
+  border-radius: 6px;
 }
 
 .question-text {
   font-weight: 500;
-  font-size: 14px;
-  margin-bottom: 12px;
+  font-size: 13px;
+  margin-bottom: 8px;
   color: rgba(0, 0, 0, 0.87);
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
 .question-options {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
 .custom-input {
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 .answers-summary {
-  margin-top: 16px;
-  padding: 12px;
+  margin-top: 8px;
+  padding: 8px;
   background-color: rgba(33, 150, 243, 0.05);
-  border-radius: 8px;
+  border-radius: 6px;
   border: 1px solid rgba(33, 150, 243, 0.1);
 }
 
 .summary-title {
-  font-size: 12px;
+  font-size: 11px;
   color: rgba(0, 0, 0, 0.6);
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 .summary-items {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .summary-item {
   display: flex;
-  gap: 8px;
-  font-size: 13px;
+  gap: 6px;
+  font-size: 12px;
 }
 
 .summary-label {
