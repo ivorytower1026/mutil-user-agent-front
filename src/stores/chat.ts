@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { Message, Interrupt, AgentMode } from '@/types/chat'
+import type { Message, Interrupt, AgentMode, Todo } from '@/types/chat'
 import { chatApi } from '@/api'
 
 const DEFAULT_MODE: AgentMode = 'build'
@@ -111,6 +111,16 @@ function setLoading(value: boolean) {
     streamingContent.value = ''
   }
 
+  function addTodoMessage(todos: Todo[]) {
+    messages.value.push({
+      id: generateId(),
+      role: 'assistant',
+      content: '',
+      todos,
+      timestamp: new Date()
+    })
+  }
+
   function setMode(newMode: AgentMode) {
     mode.value = newMode
     localStorage.setItem(STORAGE_KEY, newMode)
@@ -130,7 +140,7 @@ function setLoading(value: boolean) {
     }
   }
 
-return {
+ return {
     messages,
     interrupt,
     isLoading,
@@ -149,6 +159,7 @@ return {
     clearMessages,
     loadHistory,
     markSegmentEnd,
-    setMode
+    setMode,
+    addTodoMessage
   }
 })

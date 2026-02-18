@@ -1,11 +1,17 @@
 export type AgentMode = 'plan' | 'build'
 
+export interface Todo {
+  content: string
+  status: 'pending' | 'in_progress' | 'completed'
+}
+
 export interface Message {
   id: string
   role: 'user' | 'assistant' | 'tool' | 'system'
   content: string
   timestamp: Date
   toolCalls?: ToolCall[]
+  todos?: Todo[]
 }
 
 export interface ToolCall {

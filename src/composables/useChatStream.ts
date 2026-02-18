@@ -160,6 +160,12 @@ async function sendMessage(threadId: string, message: string) {
         }
         break
 
+      case 'todos_updated':
+        if (event.todos) {
+          chatStore.addTodoMessage(event.todos)
+        }
+        break
+
       case 'error':
         chatStore.setError(event.message || 'Unknown error')
         break

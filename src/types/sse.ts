@@ -4,6 +4,7 @@ export type SSEEventName =
   | 'tool/end'
   | 'interrupt'
   | 'title_updated'
+  | 'todos_updated'
   | 'error'
   | 'end'
 
@@ -19,6 +20,11 @@ export interface Question {
   allow_custom?: boolean
 }
 
+export interface Todo {
+  content: string
+  status: 'pending' | 'in_progress' | 'completed'
+}
+
 export interface SSEEvent {
   event: SSEEventName
   content?: string
@@ -30,4 +36,5 @@ export interface SSEEvent {
   data?: Record<string, unknown>
   title?: string
   questions?: Question[]
+  todos?: Todo[]
 }
