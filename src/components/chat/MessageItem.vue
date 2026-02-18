@@ -10,12 +10,8 @@
           <LoadingDots v-if="isStreaming && !message.content" />
         </div>
         
-        <div v-if="message.toolCalls && message.toolCalls.length > 0" class="tool-calls">
-          <ToolCallCard
-            v-for="toolCall in message.toolCalls"
-            :key="toolCall.id"
-            :tool-call="toolCall"
-          />
+        <div v-if="latestWriteTodos" class="tool-calls">
+          <ToolCallCard :tool-call="latestWriteTodos" />
         </div>
       </div>
     </div>
@@ -23,16 +19,24 @@
 </template>
 
 <script setup lang="ts">
-import type { Message } from '@/types/chat'
+import { computed } from 'vue'
+import type { Message, ToolCall } from '@/types/chat'
 import MarkdownRenderer from './MarkdownRenderer.vue'
 import LoadingDots from './LoadingDots.vue'
 import ToolCallCard from './ToolCallCard.vue'
 
-withDefaults(defineProps<{
+const props = withDefaults(defineProps<{
   message: Message
   isStreaming?: boolean
 }>(), {
   isStreaming: false
+})
+
+const latestWriteTodos = computed<ToolCall | undefined>(() => {
+  if (!props.message.toolCalls) return undefined
+  const writeTodosCalls = props.message.toolCalls.filter(tc => tc.name === 'write_todos')
+  if (writeTodosCalls.length === 0) return undefined
+  return writeTodosCalls[writeTodosCalls.length - 1]
 })
 </script>
 

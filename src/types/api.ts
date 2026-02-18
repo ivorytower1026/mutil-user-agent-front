@@ -43,6 +43,11 @@ export interface HistoryResponse {
 export interface ApiMessage {
   role: 'user' | 'assistant' | 'tool' | 'system'
   content: string
+  toolCalls?: {
+    name: string
+    status?: 'running' | 'completed'
+    todos?: { content: string; status: 'pending' | 'in_progress' | 'completed' }[]
+  }[]
 }
 
 export interface ResumeRequest {
