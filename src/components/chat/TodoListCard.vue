@@ -22,30 +22,36 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import type { Todo } from '@/types/chat'
+import { computed } from "vue";
+import type { Todo } from "@/types/chat";
 
 const props = defineProps<{
-  todos: Todo[]
-}>()
+  todos: Todo[];
+}>();
 
-const completedCount = computed(() => 
-  props.todos.filter(t => t.status === 'completed').length
-)
+const completedCount = computed(
+  () => props.todos.filter((t) => t.status === "completed").length
+);
 
-function getStatusColor(status: Todo['status']) {
+function getStatusColor(status: Todo["status"]) {
   switch (status) {
-    case 'in_progress': return 'warning'
-    case 'completed': return 'success'
-    default: return 'grey'
+    case "in_progress":
+      return "warning";
+    case "completed":
+      return "success";
+    default:
+      return "grey";
   }
 }
 
-function getStatusIcon(status: Todo['status']) {
+function getStatusIcon(status: Todo["status"]) {
   switch (status) {
-    case 'in_progress': return 'mdi-loading mdi-spin'
-    case 'completed': return 'mdi-check-circle'
-    default: return 'mdi-circle-outline'
+    case "in_progress":
+      return "mdi-loading mdi-spin";
+    case "completed":
+      return "mdi-check-circle";
+    default:
+      return "mdi-circle-outline";
   }
 }
 </script>
@@ -93,7 +99,6 @@ function getStatusIcon(status: Todo['status']) {
 }
 
 .todo-item.completed .todo-content {
-  text-decoration: line-through;
   color: rgba(0, 0, 0, 0.4);
 }
 
