@@ -25,6 +25,10 @@
       />
     </template>
 
+    <div v-if="latestTodos" class="global-todos">
+      <TodoListCard :todos="latestTodos" />
+    </div>
+
     <transition name="fade">
       <button
         v-if="showScrollButton"
@@ -39,14 +43,30 @@
 
 <script setup lang="ts">
 import { ref, watch, nextTick, computed } from "vue";
-import type { Message } from "@/types/chat";
+import type { Message, Todo } from "@/types/chat";
 import MessageItem from "./MessageItem.vue";
+import TodoListCard from "./TodoListCard.vue";
 
 const props = defineProps<{
   messages: Message[];
   isStreaming?: boolean;
   hasThread?: boolean;
 }>();
+
+const latestTodos = computed<Todo[] | undefined>(() => {
+  for (let i = props.messages.length - 1; i >= 0; i--) {
+    const msg = props.messages[i];
+    if (msg.role === "assistant" && msg.toolCalls) {
+      const writeTodosCalls = msg.toolCalls.filter(
+        (tc) => tc.name === "write_todos" && tc.todos
+      );
+      if (writeTodosCalls.length > 0) {
+        return writeTodosCalls[writeTodosCalls.length - 1].todos;
+      }
+    }
+  }
+  return undefined;
+});
 
 const filteredMessages = computed(() =>
   props.messages.filter((msg) => msg.content && msg.content.trim() !== "")
@@ -104,6 +124,18 @@ watch(
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+}
+
+.global-todos {
+  max-width: 768px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 12px 24px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.v-theme--dark .global-todos {
+  border-top-color: rgba(255, 255, 255, 0.08);
 }
 
 .empty-state {
