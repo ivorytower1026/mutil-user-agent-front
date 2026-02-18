@@ -1,6 +1,6 @@
 <template>
   <div ref="listRef" class="message-list" @scroll="handleScroll">
-    <div v-if="messages.length === 0" class="empty-state">
+    <div v-if="filteredMessages.length === 0" class="empty-state">
       <div class="empty-icon">
         <v-icon size="48" color="grey-lighten-1">mdi-chat-outline</v-icon>
       </div>
@@ -16,12 +16,12 @@
       </p>
     </div>
 
-    <template v-else>
+<template v-else>
       <MessageItem
-        v-for="(message, index) in messages"
+        v-for="(message, index) in filteredMessages"
         :key="message.id"
         :message="message"
-        :is-streaming="isStreaming && index === messages.length - 1"
+        :is-streaming="isStreaming && index === filteredMessages.length - 1"
       />
     </template>
 
@@ -38,7 +38,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick } from "vue";
+import { ref, watch, nextTick, computed } from "vue";
 import type { Message } from "@/types/chat";
 import MessageItem from "./MessageItem.vue";
 
@@ -47,6 +47,10 @@ const props = defineProps<{
   isStreaming?: boolean;
   hasThread?: boolean;
 }>();
+
+const filteredMessages = computed(() =>
+  props.messages.filter((msg) => msg.content && msg.content.trim() !== "")
+);
 
 const listRef = ref<HTMLElement | null>(null);
 const isNearBottom = ref(true);
@@ -78,7 +82,7 @@ function autoScrollIfNeeded() {
 }
 
 watch(
-  () => props.messages.length,
+  () => filteredMessages.value.length,
   (newLength, oldLength) => {
     if (newLength > (oldLength ?? 0)) {
       isNearBottom.value = true;
@@ -88,7 +92,7 @@ watch(
 );
 
 watch(
-  () => props.messages[props.messages.length - 1]?.content,
+  () => filteredMessages.value[filteredMessages.value.length - 1]?.content,
   () => autoScrollIfNeeded()
 );
 </script>
