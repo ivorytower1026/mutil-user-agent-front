@@ -6,11 +6,29 @@
 </template>
 
 <script setup lang="ts">
-import AppSnackbar from '@/components/common/AppSnackbar.vue'
+import { onMounted } from "vue";
+import { useTheme } from "vuetify";
+import AppSnackbar from "@/components/common/AppSnackbar.vue";
+
+const THEME_KEY = "app-theme";
+
+onMounted(() => {
+  const theme = useTheme();
+  const saved = localStorage.getItem(THEME_KEY);
+  if (saved && (saved === "light" || saved === "dark")) {
+    theme.global.name.value = saved;
+  } else {
+    const prefersDark = window.matchMedia(
+      "(prefers-color-scheme: dark)"
+    ).matches;
+    theme.global.name.value = prefersDark ? "dark" : "light";
+  }
+});
 </script>
 
 <style>
-html, body {
+html,
+body {
   overflow: hidden;
   height: 100vh;
   margin: 0;
