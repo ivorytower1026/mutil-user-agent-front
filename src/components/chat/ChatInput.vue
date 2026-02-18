@@ -192,8 +192,13 @@ function autoResize() {
   nextTick(() => {
     if (textareaRef.value) {
       textareaRef.value.style.height = "auto";
-      textareaRef.value.style.height =
-        Math.min(textareaRef.value.scrollHeight, 200) + "px";
+      const oneLineHeight = 24;
+      const threeLineHeight = 72;
+      if (textareaRef.value.scrollHeight > oneLineHeight) {
+        textareaRef.value.style.height = threeLineHeight + "px";
+      } else {
+        textareaRef.value.style.height = oneLineHeight + "px";
+      }
     }
   });
 }
@@ -254,11 +259,9 @@ function handleSend() {
   if ((message || props.pendingFiles.length > 0) && !props.disabled) {
     emit("send", message);
     inputText.value = "";
-    nextTick(() => {
-      if (textareaRef.value) {
-        textareaRef.value.style.height = "auto";
-      }
-    });
+    if (textareaRef.value) {
+      textareaRef.value.style.height = "24px";
+    }
   }
 }
 
@@ -435,7 +438,8 @@ function toggleMode() {
   font-size: 16px;
   line-height: 1.5;
   resize: none;
-  max-height: 200px;
+  height: 24px;
+  max-height: 72px;
   font-family: inherit;
   color: inherit;
 }
