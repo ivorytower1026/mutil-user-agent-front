@@ -70,7 +70,7 @@
       <div class="chat-input-container" @click="textareaRef?.focus()">
         <button
           class="attach-btn"
-          :disabled="disabled"
+          :disabled="isLoading && !interrupt"
           @click.stop="triggerFileInput"
         >
           <v-icon size="20">mdi-paperclip</v-icon>
@@ -87,7 +87,6 @@
           ref="textareaRef"
           v-model="inputText"
           :placeholder="placeholder"
-          :disabled="disabled"
           class="chat-textarea"
           rows="1"
           @keydown="handleKeydown"
@@ -96,7 +95,7 @@
         />
         <button
           class="mode-btn"
-          :disabled="disabled"
+          :disabled="isLoading && !interrupt"
           @click.stop="toggleMode"
           :title="
             modelValue === 'plan' ? '点击切换到构建模式' : '点击切换到思考模式'
@@ -107,10 +106,17 @@
           }}</v-icon>
         </button>
         <button
+          v-if="isLoading && !interrupt"
+          class="send-btn stop"
+          @click="handleStop"
+          title="点击中止"
+        >
+          <v-icon size="20">mdi-stop</v-icon>
+        </button>
+        <button
+          v-else
           class="send-btn"
-          :disabled="
-            disabled || (!inputText.trim() && pendingFiles.length === 0)
-          "
+          :disabled="!inputText.trim() && pendingFiles.length === 0"
           @click="handleSend"
         >
           <v-icon size="20">mdi-arrow-up</v-icon>
@@ -136,7 +142,6 @@ import type { PendingFile } from "@/composables/useChatStream";
 
 const props = withDefaults(
   defineProps<{
-    disabled?: boolean;
     placeholder?: string;
     isLoading?: boolean;
     interrupt?: Interrupt | null;
@@ -144,7 +149,6 @@ const props = withDefaults(
     modelValue?: AgentMode;
   }>(),
   {
-    disabled: false,
     placeholder: "给 AI 发送消息",
     isLoading: false,
     interrupt: null,
@@ -156,6 +160,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   send: [message: string];
   resume: [action: string, answers?: string[]];
+  stop: [];
   addFiles: [files: File[]];
   removeFile: [index: number];
   "update:modelValue": [mode: AgentMode];
@@ -209,7 +214,9 @@ function handleKeydown(e: KeyboardEvent) {
     toggleMode();
   } else if (e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
-    handleSend();
+    if (!props.isLoading || props.interrupt) {
+      handleSend();
+    }
   }
 }
 
@@ -256,13 +263,17 @@ function handlePaste(e: ClipboardEvent) {
 
 function handleSend() {
   const message = inputText.value.trim();
-  if ((message || props.pendingFiles.length > 0) && !props.disabled) {
+  if (message || props.pendingFiles.length > 0) {
     emit("send", message);
     inputText.value = "";
     if (textareaRef.value) {
       textareaRef.value.style.height = "24px";
     }
   }
+}
+
+function handleStop() {
+  emit("stop");
 }
 
 function handleConfirm() {
@@ -477,6 +488,14 @@ function toggleMode() {
   color: rgba(0, 0, 0, 0.3);
 }
 
+.send-btn.stop {
+  background-color: #f44336;
+}
+
+.send-btn.stop:hover {
+  background-color: #d32f2f;
+}
+
 .hint-text {
   text-align: center;
   font-size: 12px;
@@ -539,6 +558,14 @@ function toggleMode() {
 .v-theme--dark .send-btn:disabled {
   background-color: rgba(255, 255, 255, 0.1);
   color: rgba(255, 255, 255, 0.3);
+}
+
+.v-theme--dark .send-btn.stop {
+  background-color: #f44336;
+}
+
+.v-theme--dark .send-btn.stop:hover {
+  background-color: #ef5350;
 }
 
 .v-theme--dark .hint-text {

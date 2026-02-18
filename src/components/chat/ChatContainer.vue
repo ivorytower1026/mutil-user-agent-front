@@ -9,11 +9,11 @@
     <ChatInput
       :is-loading="isLoading"
       :interrupt="interrupt"
-      :disabled="isLoading"
       :pending-files="pendingFiles"
       v-model="mode"
       @send="handleSend"
       @resume="handleResume"
+      @stop="handleStop"
       @add-files="addFiles"
       @remove-file="removeFile"
     />
@@ -30,7 +30,7 @@ import ChatInput from './ChatInput.vue'
 
 const chatStore = useChatStore()
 const sessionStore = useSessionStore()
-const { sendMessage, resumeInterrupt, pendingFiles, addFiles, removeFile } = useChatStream()
+const { sendMessage, resumeInterrupt, stopStream, pendingFiles, addFiles, removeFile } = useChatStream()
 
 const messages = computed(() => chatStore.messages)
 const isLoading = computed(() => chatStore.isLoading)
@@ -59,6 +59,10 @@ function handleResume(action: string, answers?: string[]) {
   if (sessionStore.currentThreadId) {
     resumeInterrupt(sessionStore.currentThreadId, action, answers)
   }
+}
+
+function handleStop() {
+  stopStream()
 }
 </script>
 
