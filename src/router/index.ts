@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
 const routes = [
   {
@@ -12,6 +13,35 @@ const routes = [
     name: 'Chat',
     component: () => import('@/views/ChatView.vue'),
     meta: { requiresAuth: true, title: 'AI Agent' }
+  },
+  {
+    path: '/admin',
+    component: () => import('@/views/admin/AdminLayout.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true },
+    children: [
+      {
+        path: '',
+        redirect: '/admin/skills'
+      },
+      {
+        path: 'skills',
+        name: 'AdminSkills',
+        component: () => import('@/views/admin/AdminSkills.vue'),
+        meta: { title: 'Skill 管理' }
+      },
+      {
+        path: 'skills/:id',
+        name: 'AdminSkillDetail',
+        component: () => import('@/views/admin/SkillDetail.vue'),
+        meta: { title: 'Skill 详情' }
+      },
+      {
+        path: 'images',
+        name: 'AdminImages',
+        component: () => import('@/views/admin/ImageVersions.vue'),
+        meta: { title: '镜像版本' }
+      }
+    ]
   },
   {
     path: '/:pathMatch(.*)*',
@@ -29,12 +59,14 @@ router.beforeEach((to, _from, next) => {
     document.title = `${to.meta.title} - AI Agent Platform`
   }
 
-  const stored = sessionStorage.getItem('auth')
-  const isAuthenticated = !!(stored && JSON.parse(stored).token)
+  const authStore = useAuthStore()
+  const isAuthenticated = authStore.isAuthenticated
 
   if (to.meta.requiresAuth && !isAuthenticated) {
     next({ name: 'Login', query: { redirect: to.fullPath } })
   } else if (to.name === 'Login' && isAuthenticated) {
+    next({ name: 'Chat' })
+  } else if (to.meta.requiresAdmin && !authStore.isAdmin) {
     next({ name: 'Chat' })
   } else {
     next()

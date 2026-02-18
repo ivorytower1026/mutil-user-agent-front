@@ -17,7 +17,8 @@ export function useAuth() {
     authStore.setAuth({
       token: response.access_token,
       userId: credentials.username,
-      username: credentials.username
+      username: credentials.username,
+      isAdmin: response.is_admin ?? false
     })
     return response
   }

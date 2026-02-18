@@ -48,6 +48,14 @@
         <v-divider />
         
         <v-list-item
+          v-if="isAdmin"
+          prepend-icon="mdi-cog"
+          to="/admin/skills"
+        >
+          <v-list-item-title>管理中心</v-list-item-title>
+        </v-list-item>
+        
+        <v-list-item
           prepend-icon="mdi-logout"
           @click="handleLogout"
         >
@@ -60,7 +68,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useAuth } from '@/composables/useAuth'
+import { useAuthStore } from '@/stores/auth'
 import { useFileStore } from '@/stores/file'
 import ThemeToggle from '@/components/common/ThemeToggle.vue'
 
@@ -69,8 +77,11 @@ defineEmits<{
   'toggle-files': []
 }>()
 
-const { username, logout } = useAuth()
+const authStore = useAuthStore()
 const fileStore = useFileStore()
+
+const username = computed(() => authStore.username)
+const isAdmin = computed(() => authStore.isAdmin)
 
 const userInitial = computed(() => {
   return username.value ? username.value.charAt(0).toUpperCase() : 'U'
@@ -79,7 +90,8 @@ const userInitial = computed(() => {
 const uploadingCount = computed(() => fileStore.uploadingCount)
 
 function handleLogout() {
-  logout()
+  authStore.logout()
+  window.location.href = '/login'
 }
 </script>
 
