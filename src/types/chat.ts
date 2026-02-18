@@ -11,7 +11,6 @@ export interface Message {
   content: string
   timestamp: Date
   toolCalls?: ToolCall[]
-  todos?: Todo[]
 }
 
 export interface ToolCall {
@@ -19,6 +18,7 @@ export interface ToolCall {
   name: string
   status: 'running' | 'completed'
   timestamp: Date
+  todos?: Todo[]
 }
 
 export interface InterruptOption {

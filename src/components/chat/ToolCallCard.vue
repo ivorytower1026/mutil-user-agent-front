@@ -1,5 +1,8 @@
 <template>
-  <div class="tool-call-card" :class="statusClass">
+  <div v-if="isWriteTodos && toolCall.todos" class="tool-call-card">
+    <TodoListCard :todos="toolCall.todos" />
+  </div>
+  <div v-else class="tool-call-card" :class="statusClass">
     <div class="tool-header">
       <div class="tool-info">
         <v-icon :color="statusColor" size="16" class="status-icon">
@@ -15,10 +18,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { ToolCall } from '@/types/chat'
+import TodoListCard from './TodoListCard.vue'
 
 const props = defineProps<{
   toolCall: ToolCall
 }>()
+
+const isWriteTodos = computed(() => props.toolCall.name === 'write_todos')
 
 const statusClass = computed(() => props.toolCall.status)
 

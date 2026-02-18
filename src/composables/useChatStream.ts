@@ -120,7 +120,8 @@ async function sendMessage(threadId: string, message: string) {
       case 'tool/start':
         if (event.tool) {
           chatStore.addToolCall({
-            name: event.tool
+            name: event.tool,
+            todos: event.todos
           })
         }
         break
@@ -157,12 +158,6 @@ async function sendMessage(threadId: string, message: string) {
       case 'title_updated':
         if (event.title && sessionStore.currentThreadId) {
           sessionStore.updateThreadTitle(sessionStore.currentThreadId, event.title)
-        }
-        break
-
-      case 'todos_updated':
-        if (event.todos) {
-          chatStore.addTodoMessage(event.todos)
         }
         break
 

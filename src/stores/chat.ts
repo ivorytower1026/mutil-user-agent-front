@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { Message, Interrupt, AgentMode, Todo } from '@/types/chat'
+import type { Message, Interrupt, AgentMode, Todo, ToolCall } from '@/types/chat'
 import { chatApi } from '@/api'
 
 const DEFAULT_MODE: AgentMode = 'build'
@@ -63,17 +63,29 @@ export const useChatStore = defineStore('chat', () => {
     needsNewline.value = true
   }
 
-  function addToolCall(toolCall: { name: string }) {
+  function addToolCall(toolCall: { name: string; todos?: Todo[] }) {
     const lastMessage = messages.value[messages.value.length - 1]
     if (lastMessage && lastMessage.role === 'assistant') {
       if (!lastMessage.toolCalls) {
         lastMessage.toolCalls = []
       }
+      
+      // write_todos 特殊处理：更新现有的而不是创建新的
+      if (toolCall.name === 'write_todos' && toolCall.todos) {
+        const existingTodo = lastMessage.toolCalls.find(tc => tc.name === 'write_todos')
+        if (existingTodo) {
+          existingTodo.todos = toolCall.todos
+          existingTodo.status = 'running'
+          return
+        }
+      }
+      
       lastMessage.toolCalls.push({
         id: generateId(),
         name: toolCall.name,
         status: 'running',
-        timestamp: new Date()
+        timestamp: new Date(),
+        todos: toolCall.todos
       })
     }
   }
@@ -111,16 +123,6 @@ function setLoading(value: boolean) {
     streamingContent.value = ''
   }
 
-  function addTodoMessage(todos: Todo[]) {
-    messages.value.push({
-      id: generateId(),
-      role: 'assistant',
-      content: '',
-      todos,
-      timestamp: new Date()
-    })
-  }
-
   function setMode(newMode: AgentMode) {
     mode.value = newMode
     localStorage.setItem(STORAGE_KEY, newMode)
@@ -129,12 +131,26 @@ function setLoading(value: boolean) {
   async function loadHistory(threadId: string) {
     try {
       const response = await chatApi.getHistory(threadId)
-      messages.value = response.messages.map((msg, index) => ({
-        id: `history-${index}`,
-        role: msg.role,
-        content: msg.content,
-        timestamp: new Date()
-      }))
+      messages.value = response.messages.map((msg, index) => {
+        const formattedMsg: Message = {
+          id: `history-${index}`,
+          role: msg.role,
+          content: msg.content,
+          timestamp: new Date()
+        }
+        
+        if (msg.toolCalls && msg.toolCalls.length > 0) {
+          formattedMsg.toolCalls = msg.toolCalls.map((tc: any, tcIndex: number) => ({
+            id: `history-${index}-tool-${tcIndex}`,
+            name: tc.name,
+            status: tc.status || 'completed',
+            timestamp: new Date(),
+            todos: tc.todos
+          })) as ToolCall[]
+        }
+        
+        return formattedMsg
+      })
     } catch (e) {
       console.error('Failed to load history:', e)
     }
@@ -159,7 +175,6 @@ function setLoading(value: boolean) {
     clearMessages,
     loadHistory,
     markSegmentEnd,
-    setMode,
-    addTodoMessage
+    setMode
   }
 })

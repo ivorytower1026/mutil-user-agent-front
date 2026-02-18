@@ -10,11 +10,6 @@
           <LoadingDots v-if="isStreaming && !message.content" />
         </div>
         
-        <TodoListCard
-          v-if="message.todos && message.todos.length > 0"
-          :todos="message.todos"
-        />
-        
         <div v-if="message.toolCalls && message.toolCalls.length > 0" class="tool-calls">
           <ToolCallCard
             v-for="toolCall in message.toolCalls"
@@ -32,7 +27,6 @@ import type { Message } from '@/types/chat'
 import MarkdownRenderer from './MarkdownRenderer.vue'
 import LoadingDots from './LoadingDots.vue'
 import ToolCallCard from './ToolCallCard.vue'
-import TodoListCard from './TodoListCard.vue'
 
 withDefaults(defineProps<{
   message: Message

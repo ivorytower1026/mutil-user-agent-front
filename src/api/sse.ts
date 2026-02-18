@@ -59,6 +59,7 @@ function mapEventToSSEEvent(parsed: ParsedSSE): SSEEvent {
     data: data.data as Record<string, unknown> | undefined,
     title: data.title as string | undefined,
     questions: data.questions as SSEEvent['questions'],
+    todos: data.todos as SSEEvent['todos'],
   }
 }
 
