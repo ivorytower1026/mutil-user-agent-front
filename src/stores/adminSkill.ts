@@ -55,7 +55,14 @@ export const useAdminSkillStore = defineStore('adminSkill', () => {
   async function fetchSkillReport(skillId: string) {
     reportLoading.value = true
     try {
-      currentReport.value = await adminApi.getSkillReport(skillId)
+      const response = await adminApi.getSkillReport(skillId)
+      if (typeof response === 'string') {
+        currentReport.value = response
+      } else if (response && typeof response === 'object' && 'content' in response) {
+        currentReport.value = response.content
+      } else {
+        currentReport.value = String(response)
+      }
     } catch (e) {
       currentReport.value = '加载报告失败: ' + (e instanceof Error ? e.message : 'Unknown error')
     } finally {
