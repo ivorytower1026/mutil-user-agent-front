@@ -68,9 +68,22 @@ const latestTodos = computed<Todo[] | undefined>(() => {
   return undefined;
 });
 
-const filteredMessages = computed(() =>
-  props.messages.filter((msg) => msg.content && msg.content.trim() !== "")
-);
+const filteredMessages = computed(() => {
+  const result: Message[] = []
+  for (let i = 0; i < props.messages.length; i++) {
+    const msg = props.messages[i]
+    if (msg.content && msg.content.trim() !== "") {
+      result.push(msg)
+    } else if (
+      props.isStreaming &&
+      i === props.messages.length - 1 &&
+      msg.role === "assistant"
+    ) {
+      result.push(msg)
+    }
+  }
+  return result
+})
 
 const listRef = ref<HTMLElement | null>(null);
 const isNearBottom = ref(true);
