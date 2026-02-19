@@ -99,8 +99,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, watch, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useAdminSkillStore } from '@/stores/adminSkill'
 import { useNotification } from '@/stores/notification'
 import SkillStatusChip from '@/components/admin/SkillStatusChip.vue'
@@ -108,6 +108,7 @@ import SkillUploadDialog from '@/components/admin/SkillUploadDialog.vue'
 import type { SkillListItem } from '@/types/admin'
 
 const router = useRouter()
+const route = useRoute()
 const store = useAdminSkillStore()
 const notification = useNotification()
 
@@ -196,6 +197,15 @@ function onUploaded() {
   showUpload.value = false
   loadSkills()
 }
+
+watch(
+  () => route.fullPath,
+  (newPath, oldPath) => {
+    if (oldPath?.includes('/admin/skills/') && newPath === '/admin/skills') {
+      loadSkills()
+    }
+  }
+)
 
 onMounted(() => {
   loadSkills()

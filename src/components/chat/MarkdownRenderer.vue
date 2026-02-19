@@ -34,8 +34,12 @@ marked.setOptions({
 })
 
 const renderedContent = computed(() => {
-  if (!props.content) return ''
-  return marked.parse(props.content) as string
+  if (!props.content || typeof props.content !== 'string') return ''
+  try {
+    return marked.parse(props.content) as string
+  } catch {
+    return props.content
+  }
 })
 </script>
 

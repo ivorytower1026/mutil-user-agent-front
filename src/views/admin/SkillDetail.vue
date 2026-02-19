@@ -220,6 +220,7 @@ const router = useRouter()
 const store = useAdminSkillStore()
 const notification = useNotification()
 
+const isMounted = ref(true)
 const rejectReason = ref('')
 const approving = ref(false)
 const rejecting = ref(false)
@@ -227,16 +228,19 @@ const revalidating = ref(false)
 const deleting = ref(false)
 
 const canApprove = computed(() => {
+  if (!isMounted.value) return false
   const skill = store.currentSkill
   return skill && skill.status === 'pending' && skill.validation_stage === 'completed'
 })
 
 const canRevalidate = computed(() => {
+  if (!isMounted.value) return false
   const skill = store.currentSkill
   return skill && (skill.status === 'rejected' || skill.status === 'pending')
 })
 
 const canDelete = computed(() => {
+  if (!isMounted.value) return false
   const skill = store.currentSkill
   return skill && (skill.status === 'rejected' || skill.status === 'approved')
 })
@@ -250,10 +254,13 @@ async function handleApprove() {
   approving.value = true
   try {
     await store.approveSkill(store.currentSkill.skill_id)
+    if (!isMounted.value) return
     notification.success('已批准入库')
   } catch (e) {
+    if (!isMounted.value) return
     notification.error(e instanceof Error ? e.message : '批准失败')
   } finally {
+    if (!isMounted.value) return
     approving.value = false
   }
 }
@@ -263,11 +270,14 @@ async function handleReject() {
   rejecting.value = true
   try {
     await store.rejectSkill(store.currentSkill.skill_id, rejectReason.value || '未通过审核')
+    if (!isMounted.value) return
     notification.success('已拒绝')
     rejectReason.value = ''
   } catch (e) {
+    if (!isMounted.value) return
     notification.error(e instanceof Error ? e.message : '拒绝失败')
   } finally {
+    if (!isMounted.value) return
     rejecting.value = false
   }
 }
@@ -277,10 +287,13 @@ async function handleRevalidate() {
   revalidating.value = true
   try {
     await store.revalidateSkill(store.currentSkill.skill_id)
+    if (!isMounted.value) return
     notification.success('已开始重新验证')
   } catch (e) {
+    if (!isMounted.value) return
     notification.error(e instanceof Error ? e.message : '重新验证失败')
   } finally {
+    if (!isMounted.value) return
     revalidating.value = false
   }
 }
@@ -291,11 +304,14 @@ async function handleDelete() {
   deleting.value = true
   try {
     await store.deleteSkill(store.currentSkill.skill_id)
+    if (!isMounted.value) return
     notification.success('已删除')
     router.push('/admin/skills')
   } catch (e) {
+    if (!isMounted.value) return
     notification.error(e instanceof Error ? e.message : '删除失败')
   } finally {
+    if (!isMounted.value) return
     deleting.value = false
   }
 }
@@ -307,6 +323,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  isMounted.value = false
   store.clearCurrentSkill()
 })
 </script>
