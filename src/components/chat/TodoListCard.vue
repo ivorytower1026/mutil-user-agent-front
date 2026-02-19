@@ -25,9 +25,15 @@
 import { computed } from "vue";
 import type { Todo } from "@/types/chat";
 
-const props = defineProps<{
-  todos: Todo[];
-}>();
+const props = withDefaults(
+  defineProps<{
+    todos: Todo[];
+    isStreaming?: boolean;
+  }>(),
+  {
+    isStreaming: false,
+  }
+);
 
 const completedCount = computed(
   () => props.todos.filter((t) => t.status === "completed").length
@@ -47,7 +53,7 @@ function getStatusColor(status: Todo["status"]) {
 function getStatusIcon(status: Todo["status"]) {
   switch (status) {
     case "in_progress":
-      return "mdi-loading mdi-spin";
+      return props.isStreaming ? "mdi-loading mdi-spin" : "mdi-progress-clock";
     case "completed":
       return "mdi-check-circle";
     default:

@@ -26,7 +26,7 @@
     </template>
 
     <div v-if="latestTodos" class="global-todos">
-      <TodoListCard :todos="latestTodos" />
+      <TodoListCard :todos="latestTodos" :is-streaming="isStreaming" />
     </div>
 
     <transition name="fade">
