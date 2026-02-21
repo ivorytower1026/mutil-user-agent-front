@@ -5,8 +5,7 @@ import type {
   UploadResponse,
   ApproveResponse,
   RejectResponse,
-  RollbackResponse,
-  ImageVersionListResponse
+  FullTestResponse
 } from '@/types/admin'
 
 const BASE = '/api/admin'
@@ -63,15 +62,8 @@ export const adminApi = {
     return response.data
   },
 
-  async getImageVersions(): Promise<ImageVersionListResponse> {
-    const response = await api.get<ImageVersionListResponse>(`${BASE}/images`)
-    return response.data
-  },
-
-  async rollbackImage(targetVersion: string): Promise<RollbackResponse> {
-    const response = await api.post<RollbackResponse>(`${BASE}/images/rollback`, {
-      target_version: targetVersion
-    })
+  async fullTest(): Promise<FullTestResponse> {
+    const response = await api.post<FullTestResponse>(`${BASE}/skills/full-test`)
     return response.data
   }
 }

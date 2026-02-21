@@ -2,9 +2,19 @@
   <div>
     <div class="d-flex justify-space-between align-center mb-4">
       <h1 class="text-h5">Skill 管理</h1>
-      <v-btn color="primary" prepend-icon="mdi-upload" @click="showUpload = true">
-        上传 Skill
-      </v-btn>
+      <div class="d-flex ga-2">
+        <v-btn
+          color="secondary"
+          prepend-icon="mdi-test-tube"
+          :loading="store.fullTestLoading"
+          @click="handleFullTest"
+        >
+          全量测试
+        </v-btn>
+        <v-btn color="primary" prepend-icon="mdi-upload" @click="showUpload = true">
+          上传 Skill
+        </v-btn>
+      </div>
     </div>
 
     <v-card>
@@ -196,6 +206,16 @@ async function handleRevalidate(item: SkillListItem) {
 function onUploaded() {
   showUpload.value = false
   loadSkills()
+}
+
+async function handleFullTest() {
+  try {
+    const result = await store.fullTest()
+    notification.success(result.message)
+    setTimeout(() => loadSkills(), 3000)
+  } catch (e) {
+    notification.error(e instanceof Error ? e.message : '全量测试启动失败')
+  }
 }
 
 watch(

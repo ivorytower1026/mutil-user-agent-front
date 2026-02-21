@@ -34,12 +34,6 @@ const routes = [
         name: 'AdminSkillDetail',
         component: () => import('@/views/admin/SkillDetail.vue'),
         meta: { title: 'Skill 详情' }
-      },
-      {
-        path: 'images',
-        name: 'AdminImages',
-        component: () => import('@/views/admin/ImageVersions.vue'),
-        meta: { title: '镜像版本' }
       }
     ]
   },
