@@ -124,11 +124,12 @@ export async function* streamResume(
   threadId: string,
   action: string,
   answers?: string[],
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  mode: AgentMode = 'build'
 ): AsyncGenerator<SSEEvent> {
   const token = getToken()
   
-  const body: Record<string, unknown> = { action }
+  const body: Record<string, unknown> = { action, mode }
   if (answers) {
     body.answers = answers
   }

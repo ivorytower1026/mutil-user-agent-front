@@ -98,7 +98,7 @@ async function sendMessage(threadId: string, message: string) {
     abortController.value = new AbortController()
 
     try {
-      for await (const event of streamResume(threadId, action, answers, abortController.value.signal)) {
+      for await (const event of streamResume(threadId, action, answers, abortController.value.signal, chatStore.mode)) {
         handleEvent(event)
       }
     } catch (e: unknown) {
