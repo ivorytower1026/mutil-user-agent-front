@@ -12,16 +12,22 @@
           value="skills"
         />
         <v-list-item
-          disabled
-          prepend-icon="mdi-robot"
-          title="模型配置"
-          subtitle="即将上线"
+          to="/admin/simple-skills"
+          prepend-icon="mdi-upload"
+          title="Skill 快速上传"
+          value="simple-skills"
         />
         <v-list-item
-          disabled
+          to="/admin/mcp"
           prepend-icon="mdi-connection"
           title="MCP 配置"
-          subtitle="即将上线"
+          value="mcp"
+        />
+        <v-list-item
+          to="/admin/agents"
+          prepend-icon="mdi-robot"
+          title="代理配置"
+          value="agents"
         />
       </v-list>
     </v-navigation-drawer>

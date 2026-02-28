@@ -127,3 +127,34 @@ export interface FullTestResponse {
   status: 'started'
   message: string
 }
+
+export type SimpleSkillStatus = 'active' | 'disabled'
+
+export interface SimpleSkillItem {
+  skill_id: string
+  name: string
+  display_name: string | null
+  description: string | null
+  status: SimpleSkillStatus
+  format_valid: boolean
+  format_errors: string[]
+  format_warnings: string[]
+  created_at: string
+}
+
+export interface SimpleSkillListResponse {
+  skills: SimpleSkillItem[]
+  total: number
+}
+
+export interface SimpleSkillResponse {
+  skill_id: string
+  name: string
+  display_name: string | null
+  description: string | null
+  status: SimpleSkillStatus
+  format_valid: boolean
+  format_errors: string[]
+  format_warnings: string[]
+  created_at: string
+}
