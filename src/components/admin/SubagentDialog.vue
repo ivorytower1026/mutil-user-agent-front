@@ -36,10 +36,19 @@
             class="mb-3"
           />
 
+          <v-select
+            v-model="modelSelect"
+            :items="modelOptions"
+            label="模型"
+            class="mb-3"
+          />
+
           <v-text-field
-            v-model="form.model"
-            label="模型 (可选)"
+            v-if="modelSelect === 'custom'"
+            v-model="customModel"
+            label="自定义模型"
             placeholder="如: openai:gpt-4o"
+            :rules="[rules.required]"
           />
         </v-form>
       </v-card-text>
@@ -82,6 +91,16 @@ const form = ref<SubagentCreate>({
   model: ''
 })
 
+const modelSelect = ref('')
+const customModel = ref('')
+
+const modelOptions = [
+  { title: '不指定 (跟随主代理)', value: '' },
+  { title: '主模型', value: 'big' },
+  { title: '快速模型', value: 'flash' },
+  { title: '自定义', value: 'custom' }
+]
+
 const rules = {
   required: (v: string) => !!v || '必填',
   nameFormat: (v: string) => /^[a-zA-Z0-9_-]+$/.test(v) || '只能包含字母、数字、连字符和下划线'
@@ -97,6 +116,15 @@ watch(() => props.modelValue, (val) => {
         mcp_servers: props.subagent.mcp_servers || [],
         model: props.subagent.model || ''
       }
+      
+      const model = props.subagent.model || ''
+      if (model === '' || model === 'big' || model === 'flash') {
+        modelSelect.value = model
+        customModel.value = ''
+      } else {
+        modelSelect.value = 'custom'
+        customModel.value = model
+      }
     } else {
       resetForm()
     }
@@ -111,24 +139,40 @@ function resetForm() {
     mcp_servers: [],
     model: ''
   }
+  modelSelect.value = ''
+  customModel.value = ''
 }
 
 async function handleSave() {
   const valid = await formRef.value?.validate()
   if (!valid) return
 
+  let finalModel = ''
+  if (modelSelect.value === 'custom') {
+    finalModel = customModel.value
+  } else {
+    finalModel = modelSelect.value
+  }
+
   try {
     const data: SubagentCreate | SubagentUpdate = {
       description: form.value.description || undefined,
       system_prompt: form.value.system_prompt || undefined,
       mcp_servers: form.value.mcp_servers || undefined,
-      model: form.value.model || undefined
+      model: finalModel || undefined
     }
 
     if (isEdit.value) {
       await store.updateSubagent(props.subagent!.name, data as SubagentUpdate)
     } else {
-      await store.createSubagent(form.value as SubagentCreate)
+      const createData: SubagentCreate = {
+        name: form.value.name,
+        description: form.value.description || undefined,
+        system_prompt: form.value.system_prompt || undefined,
+        mcp_servers: form.value.mcp_servers || undefined,
+        model: finalModel || undefined
+      }
+      await store.createSubagent(createData)
     }
     emit('saved')
     emit('update:modelValue', false)
