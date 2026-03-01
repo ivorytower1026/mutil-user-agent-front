@@ -46,7 +46,7 @@
           </v-col>
         </v-row>
 
-        <v-combobox
+        <v-select
           v-model="mainForm.subagents"
           :items="subagentNames"
           label="启用的子代理"

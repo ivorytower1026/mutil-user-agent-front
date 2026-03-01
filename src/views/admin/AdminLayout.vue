@@ -5,16 +5,16 @@
         <v-list-item prepend-icon="mdi-arrow-left" title="返回主页" to="/" />
         <v-divider class="my-2" />
         <v-list-subheader>配置管理</v-list-subheader>
-        <v-list-item
+        <!-- <v-list-item
           to="/admin/skills"
           prepend-icon="mdi-puzzle"
           title="Skill 管理"
           value="skills"
-        />
+        /> -->
         <v-list-item
           to="/admin/simple-skills"
-          prepend-icon="mdi-upload"
-          title="Skill 快速上传"
+          prepend-icon="mdi-puzzle"
+          title="Skill 管理"
           value="simple-skills"
         />
         <v-list-item

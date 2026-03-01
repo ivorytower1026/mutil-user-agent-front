@@ -21,25 +21,25 @@ const routes = [
     children: [
       {
         path: '',
-        redirect: '/admin/skills'
+        redirect: '/admin/simple-skills'
       },
-      {
-        path: 'skills',
-        name: 'AdminSkills',
-        component: () => import('@/views/admin/AdminSkills.vue'),
-        meta: { title: 'Skill 管理' }
-      },
-      {
-        path: 'skills/:id',
-        name: 'AdminSkillDetail',
-        component: () => import('@/views/admin/SkillDetail.vue'),
-        meta: { title: 'Skill 详情' }
-      },
+      // {
+      //   path: 'skills',
+      //   name: 'AdminSkills',
+      //   component: () => import('@/views/admin/AdminSkills.vue'),
+      //   meta: { title: 'Skill 管理' }
+      // },
+      // {
+      //   path: 'skills/:id',
+      //   name: 'AdminSkillDetail',
+      //   component: () => import('@/views/admin/SkillDetail.vue'),
+      //   meta: { title: 'Skill 详情' }
+      // },
       {
         path: 'simple-skills',
         name: 'AdminSimpleSkills',
         component: () => import('@/views/admin/SimpleSkills.vue'),
-        meta: { title: 'Skill 快速上传' }
+        meta: { title: 'Skill 管理' }
       },
       {
         path: 'mcp',
