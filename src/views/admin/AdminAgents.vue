@@ -26,9 +26,9 @@
         <v-row>
           <v-col cols="12" md="6">
             <v-combobox
-              v-model="mainForm.mcp_tools"
-              :items="availableMcpTools"
-              label="MCP 工具"
+              v-model="mainForm.mcp_servers"
+              :items="availableMcpServers"
+              label="MCP 服务"
               multiple
               chips
               closable-chips
@@ -83,12 +83,12 @@
               <div class="text-caption text-medium-emphasis">{{ item.description || '无描述' }}</div>
             </div>
           </template>
-          <template #item.mcp_tools="{ item }">
-            <v-chip v-for="tool in item.mcp_tools.slice(0, 3)" :key="tool" size="x-small" class="mr-1">
-              {{ tool }}
+          <template #item.mcp_servers="{ item }">
+            <v-chip v-for="server in item.mcp_servers.slice(0, 3)" :key="server" size="x-small" class="mr-1">
+              {{ server }}
             </v-chip>
-            <span v-if="item.mcp_tools.length > 3" class="text-caption">
-              +{{ item.mcp_tools.length - 3 }}
+            <span v-if="item.mcp_servers.length > 3" class="text-caption">
+              +{{ item.mcp_servers.length - 3 }}
             </span>
           </template>
           <template #item.skills="{ item }">
@@ -109,7 +109,7 @@
     <SubagentDialog
       v-model="showSubagentDialog"
       :subagent="editingSubagent"
-      :available-mcp-tools="availableMcpTools"
+      :available-mcp-servers="availableMcpServers"
       :available-skills="availableSkills"
       @saved="onSubagentSaved"
     />
@@ -151,19 +151,19 @@ const deletingSubagent = ref<AgentConfig | null>(null)
 
 const mainForm = ref({
   system_prompt: '',
-  mcp_tools: [] as string[],
+  mcp_servers: [] as string[],
   skills: [] as string[],
   subagents: [] as string[]
 })
 
 const subagentHeaders = [
   { title: '名称', key: 'name', sortable: false },
-  { title: 'MCP 工具', key: 'mcp_tools', sortable: false },
+  { title: 'MCP 服务', key: 'mcp_servers', sortable: false },
   { title: 'Skills 数', key: 'skills', sortable: false, width: 100 },
   { title: '操作', key: 'actions', sortable: false, width: 150 }
 ]
 
-const availableMcpTools = ref<string[]>([])
+const availableMcpServers = ref<string[]>([])
 const availableSkills = ref<string[]>([])
 
 const subagentNames = computed(() => store.subagents.map(s => s.name))
@@ -213,20 +213,9 @@ function onSubagentSaved() {
 
 async function loadAvailableData() {
   await mcpStore.fetchServers()
-  const mcpTools: string[] = []
-  for (const server of mcpStore.servers) {
-    if (server.enabled) {
-      try {
-        const tools = await mcpStore.listTools(server.name)
-        for (const tool of tools) {
-          mcpTools.push(`${server.name}.${tool.name}`)
-        }
-      } catch (e) {
-        // ignore
-      }
-    }
-  }
-  availableMcpTools.value = mcpTools
+  availableMcpServers.value = mcpStore.servers
+    .filter(s => s.enabled)
+    .map(s => s.name)
 
   const simpleSkills = await adminApi.getSimpleSkills()
   availableSkills.value = simpleSkills.skills.map(s => s.name)
@@ -238,7 +227,7 @@ onMounted(async () => {
   if (store.mainConfig) {
     mainForm.value = {
       system_prompt: store.mainConfig.system_prompt || '',
-      mcp_tools: [...(store.mainConfig.mcp_tools || [])],
+      mcp_servers: [...(store.mainConfig.mcp_servers || [])],
       skills: [...(store.mainConfig.skills || [])],
       subagents: [...(store.mainConfig.subagents || [])]
     }

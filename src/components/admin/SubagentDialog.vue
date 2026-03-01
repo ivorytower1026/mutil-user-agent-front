@@ -27,9 +27,9 @@
           />
 
           <v-combobox
-            v-model="form.mcp_tools"
-            :items="availableMcpTools"
-            label="MCP 工具"
+            v-model="form.mcp_servers"
+            :items="availableMcpServers"
+            label="MCP 服务"
             multiple
             chips
             closable-chips
@@ -70,7 +70,7 @@ import type { AgentConfig, SubagentCreate, SubagentUpdate } from '@/types/agentC
 const props = defineProps<{
   modelValue: boolean
   subagent: AgentConfig | null
-  availableMcpTools: string[]
+  availableMcpServers: string[]
   availableSkills: string[]
 }>()
 
@@ -89,7 +89,7 @@ const form = ref<SubagentCreate>({
   name: '',
   description: '',
   system_prompt: '',
-  mcp_tools: [],
+  mcp_servers: [],
   skills: [],
   model: ''
 })
@@ -106,7 +106,7 @@ watch(() => props.modelValue, (val) => {
         name: props.subagent.name,
         description: props.subagent.description || '',
         system_prompt: props.subagent.system_prompt || '',
-        mcp_tools: props.subagent.mcp_tools || [],
+        mcp_servers: props.subagent.mcp_servers || [],
         skills: props.subagent.skills || [],
         model: props.subagent.model || ''
       }
@@ -121,7 +121,7 @@ function resetForm() {
     name: '',
     description: '',
     system_prompt: '',
-    mcp_tools: [],
+    mcp_servers: [],
     skills: [],
     model: ''
   }
@@ -135,7 +135,7 @@ async function handleSave() {
     const data: SubagentCreate | SubagentUpdate = {
       description: form.value.description || undefined,
       system_prompt: form.value.system_prompt || undefined,
-      mcp_tools: form.value.mcp_tools || undefined,
+      mcp_servers: form.value.mcp_servers || undefined,
       skills: form.value.skills || undefined,
       model: form.value.model || undefined
     }

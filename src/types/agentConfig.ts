@@ -4,7 +4,7 @@ export interface AgentConfig {
   is_main: boolean
   description?: string
   system_prompt?: string
-  mcp_tools: string[]
+  mcp_servers: string[]
   skills: string[]
   subagents: string[]
   model?: string
@@ -12,7 +12,7 @@ export interface AgentConfig {
 
 export interface MainAgentConfigUpdate {
   system_prompt?: string
-  mcp_tools?: string[]
+  mcp_servers?: string[]
   skills?: string[]
   subagents?: string[]
 }
@@ -21,7 +21,7 @@ export interface SubagentCreate {
   name: string
   description?: string
   system_prompt?: string
-  mcp_tools?: string[]
+  mcp_servers?: string[]
   skills?: string[]
   model?: string
 }
@@ -29,7 +29,7 @@ export interface SubagentCreate {
 export interface SubagentUpdate {
   description?: string
   system_prompt?: string
-  mcp_tools?: string[]
+  mcp_servers?: string[]
   skills?: string[]
   model?: string
 }
