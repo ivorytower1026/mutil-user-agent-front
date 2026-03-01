@@ -1,7 +1,7 @@
 <template>
   <v-dialog :model-value="modelValue" max-width="600" @update:model-value="$emit('update:modelValue', $event)">
     <v-card>
-      <v-card-title>{{ isEdit ? '编辑子代理' : '创建子代理' }}</v-card-title>
+      <v-card-title>{{ isEdit ? '编辑子agent' : '创建子agent' }}</v-card-title>
       <v-card-text>
         <v-form ref="formRef" v-model="isValid">
           <v-text-field
@@ -36,16 +36,6 @@
             class="mb-3"
           />
 
-          <v-combobox
-            v-model="form.skills"
-            :items="availableSkills"
-            label="Skills"
-            multiple
-            chips
-            closable-chips
-            class="mb-3"
-          />
-
           <v-text-field
             v-model="form.model"
             label="模型 (可选)"
@@ -71,7 +61,6 @@ const props = defineProps<{
   modelValue: boolean
   subagent: AgentConfig | null
   availableMcpServers: string[]
-  availableSkills: string[]
 }>()
 
 const emit = defineEmits<{
@@ -90,7 +79,6 @@ const form = ref<SubagentCreate>({
   description: '',
   system_prompt: '',
   mcp_servers: [],
-  skills: [],
   model: ''
 })
 
@@ -107,7 +95,6 @@ watch(() => props.modelValue, (val) => {
         description: props.subagent.description || '',
         system_prompt: props.subagent.system_prompt || '',
         mcp_servers: props.subagent.mcp_servers || [],
-        skills: props.subagent.skills || [],
         model: props.subagent.model || ''
       }
     } else {
@@ -122,7 +109,6 @@ function resetForm() {
     description: '',
     system_prompt: '',
     mcp_servers: [],
-    skills: [],
     model: ''
   }
 }
@@ -136,7 +122,6 @@ async function handleSave() {
       description: form.value.description || undefined,
       system_prompt: form.value.system_prompt || undefined,
       mcp_servers: form.value.mcp_servers || undefined,
-      skills: form.value.skills || undefined,
       model: form.value.model || undefined
     }
 

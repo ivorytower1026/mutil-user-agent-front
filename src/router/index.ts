@@ -57,7 +57,7 @@ const routes = [
         path: 'agents',
         name: 'AdminAgents',
         component: () => import('@/views/admin/AdminAgents.vue'),
-        meta: { title: '代理配置' }
+        meta: { title: 'agent配置' }
       }
     ]
   },

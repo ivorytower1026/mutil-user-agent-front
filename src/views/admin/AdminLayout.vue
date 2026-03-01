@@ -32,7 +32,7 @@
         <v-list-item
           to="/admin/agents"
           prepend-icon="mdi-robot"
-          title="代理配置"
+          title="agent配置"
           value="agents"
         />
       </v-list>

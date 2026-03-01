@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="d-flex justify-space-between align-center mb-4">
-      <h1 class="text-h5">代理配置</h1>
+      <h1 class="text-h5">agent配置</h1>
       <v-btn
         color="secondary"
         prepend-icon="mdi-refresh"
@@ -13,7 +13,7 @@
     </div>
 
     <v-card class="mb-4">
-      <v-card-title>主代理配置</v-card-title>
+      <v-card-title>主agent配置</v-card-title>
       <v-card-text>
         <v-textarea
           v-model="mainForm.system_prompt"
@@ -23,33 +23,19 @@
           class="mb-4"
         />
 
-        <v-row>
-          <v-col cols="12" md="6">
-            <v-combobox
-              v-model="mainForm.mcp_servers"
-              :items="availableMcpServers"
-              label="MCP 服务"
-              multiple
-              chips
-              closable-chips
-            />
-          </v-col>
-          <v-col cols="12" md="6">
-            <v-combobox
-              v-model="mainForm.skills"
-              :items="availableSkills"
-              label="Skills"
-              multiple
-              chips
-              closable-chips
-            />
-          </v-col>
-        </v-row>
+        <v-combobox
+          v-model="mainForm.mcp_servers"
+          :items="availableMcpServers"
+          label="MCP 服务"
+          multiple
+          chips
+          closable-chips
+        />
 
         <v-select
           v-model="mainForm.subagents"
           :items="subagentNames"
-          label="启用的子代理"
+          label="启用的子agent"
           multiple
           chips
           closable-chips
@@ -58,7 +44,7 @@
 
         <div class="d-flex justify-end mt-4">
           <v-btn color="primary" :loading="savingMain" @click="saveMainConfig">
-            保存主代理配置
+            保存主agent配置
           </v-btn>
         </div>
       </v-card-text>
@@ -66,9 +52,9 @@
 
     <v-card>
       <v-card-title class="d-flex justify-space-between align-center">
-        <span>子代理</span>
+        <span>子agent</span>
         <v-btn color="primary" prepend-icon="mdi-plus" @click="openCreateSubagent">
-          创建子代理
+          创建子agent
         </v-btn>
       </v-card-title>
       <v-card-text>
@@ -91,9 +77,6 @@
               +{{ item.mcp_servers.length - 3 }}
             </span>
           </template>
-          <template #item.skills="{ item }">
-            {{ item.skills.length }}
-          </template>
           <template #item.actions="{ item }">
             <v-btn size="small" variant="text" @click="editSubagent(item)">
               编辑
@@ -110,7 +93,6 @@
       v-model="showSubagentDialog"
       :subagent="editingSubagent"
       :available-mcp-servers="availableMcpServers"
-      :available-skills="availableSkills"
       @saved="onSubagentSaved"
     />
 
@@ -118,7 +100,7 @@
       <v-card>
         <v-card-title>确认删除</v-card-title>
         <v-card-text>
-          确定要删除子代理 "{{ deletingSubagent?.name }}" 吗？
+          确定要删除子agent "{{ deletingSubagent?.name }}" 吗？
         </v-card-text>
         <v-card-actions>
           <v-spacer />
@@ -134,7 +116,6 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAgentConfigStore } from '@/stores/agentConfig'
 import { useMcpStore } from '@/stores/mcp'
-import { adminApi } from '@/api/admin'
 import { useNotification } from '@/stores/notification'
 import SubagentDialog from '@/components/admin/SubagentDialog.vue'
 import type { AgentConfig } from '@/types/agentConfig'
@@ -152,26 +133,23 @@ const deletingSubagent = ref<AgentConfig | null>(null)
 const mainForm = ref({
   system_prompt: '',
   mcp_servers: [] as string[],
-  skills: [] as string[],
   subagents: [] as string[]
 })
 
 const subagentHeaders = [
   { title: '名称', key: 'name', sortable: false },
   { title: 'MCP 服务', key: 'mcp_servers', sortable: false },
-  { title: 'Skills 数', key: 'skills', sortable: false, width: 100 },
   { title: '操作', key: 'actions', sortable: false, width: 150 }
 ]
 
 const availableMcpServers = ref<string[]>([])
-const availableSkills = ref<string[]>([])
 
 const subagentNames = computed(() => store.subagents.map(s => s.name))
 
 async function handleReload() {
   try {
     await store.reload()
-    notification.success('代理配置已重新加载')
+    notification.success('agent配置已重新加载')
   } catch (e) {
     notification.error(e instanceof Error ? e.message : '重新加载失败')
   }
@@ -182,7 +160,7 @@ async function saveMainConfig() {
   try {
     await store.updateMain(mainForm.value)
     await store.reload()
-    notification.success('主代理配置已保存并重新加载')
+    notification.success('主agent配置已保存并重新加载')
   } catch (e) {
     notification.error(e instanceof Error ? e.message : '保存失败')
   } finally {
@@ -209,7 +187,7 @@ async function doDeleteSubagent() {
   if (!deletingSubagent.value) return
   try {
     await store.deleteSubagent(deletingSubagent.value.name)
-    notification.success(`子代理 "${deletingSubagent.value.name}" 已删除`)
+    notification.success(`子agent "${deletingSubagent.value.name}" 已删除`)
     showDeleteConfirm.value = false
   } catch (e) {
     notification.error(e instanceof Error ? e.message : '删除失败')
@@ -226,9 +204,6 @@ async function loadAvailableData() {
   availableMcpServers.value = mcpStore.servers
     .filter(s => s.enabled)
     .map(s => s.name)
-
-  const simpleSkills = await adminApi.getSimpleSkills()
-  availableSkills.value = simpleSkills.skills.map(s => s.name)
 }
 
 onMounted(async () => {
@@ -238,7 +213,6 @@ onMounted(async () => {
     mainForm.value = {
       system_prompt: store.mainConfig.system_prompt || '',
       mcp_servers: [...(store.mainConfig.mcp_servers || [])],
-      skills: [...(store.mainConfig.skills || [])],
       subagents: [...(store.mainConfig.subagents || [])]
     }
   }
