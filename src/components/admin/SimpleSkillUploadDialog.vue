@@ -9,6 +9,7 @@
           accept=".zip"
           prepend-icon="mdi-file-zip"
           :rules="[rules.required]"
+          show-size
           class="mb-4"
         />
         <v-alert v-if="error" type="error" class="mb-4">
@@ -27,7 +28,7 @@
         <v-btn
           color="primary"
           :loading="uploading"
-          :disabled="!selectedFile"
+          :disabled="!hasFile"
           @click="handleUpload"
         >
           上传
@@ -38,7 +39,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { adminApi } from '@/api/admin'
 
 const props = defineProps<{
@@ -50,32 +51,34 @@ const emit = defineEmits<{
   'uploaded': []
 }>()
 
-const selectedFile = ref<File[]>([])
+const selectedFile = ref<File | null>(null)
 const uploading = ref(false)
 const error = ref('')
 const success = ref('')
 
+const hasFile = computed(() => selectedFile.value !== null)
+
 const rules = {
-  required: (v: File[]) => (v && v.length > 0) || '请选择文件'
+  required: (v: File | null) => !!v || '请选择文件'
 }
 
 watch(() => props.modelValue, (val) => {
   if (val) {
-    selectedFile.value = []
+    selectedFile.value = null
     error.value = ''
     success.value = ''
   }
 })
 
 async function handleUpload() {
-  if (!selectedFile.value || selectedFile.value.length === 0) return
+  if (!selectedFile.value) return
 
   uploading.value = true
   error.value = ''
   success.value = ''
 
   try {
-    const result = await adminApi.uploadSkillSimple(selectedFile.value[0])
+    const result = await adminApi.uploadSkillSimple(selectedFile.value)
     success.value = result.name
     emit('uploaded')
     setTimeout(() => {

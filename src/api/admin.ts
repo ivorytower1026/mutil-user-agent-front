@@ -73,7 +73,9 @@ export const adminApi = {
   async uploadSkillSimple(file: File): Promise<SimpleSkillResponse> {
     const formData = new FormData()
     formData.append('file', file)
-    const response = await api.post<SimpleSkillResponse>(`${BASE}/skills/simple/upload`, formData)
+    const response = await api.post<SimpleSkillResponse>(`${BASE}/skills/simple/upload`, formData, {
+      headers: { 'Content-Type': undefined }
+    })
     return response.data
   },
 
