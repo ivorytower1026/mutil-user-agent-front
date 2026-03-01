@@ -46,6 +46,10 @@ export const useLlmStore = defineStore('llm', () => {
     return await llmApi.test(data)
   }
 
+  async function testConfigById(id: string): Promise<LlmTestResult> {
+    return await llmApi.testConfig(id)
+  }
+
   return {
     configs,
     isLoading,
@@ -55,6 +59,7 @@ export const useLlmStore = defineStore('llm', () => {
     updateConfig,
     deleteConfig,
     activateConfig,
-    testConnection
+    testConnection,
+    testConfigById
   }
 })

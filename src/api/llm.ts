@@ -43,5 +43,10 @@ export const llmApi = {
   async test(data: LlmTestRequest): Promise<LlmTestResult> {
     const response = await api.post<LlmTestResult>(`${BASE}/test`, data)
     return response.data
+  },
+
+  async testConfig(id: string): Promise<LlmTestResult> {
+    const response = await api.post<LlmTestResult>(`${BASE}/configs/${id}/test`)
+    return response.data
   }
 }

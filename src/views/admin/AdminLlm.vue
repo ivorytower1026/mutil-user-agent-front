@@ -181,6 +181,14 @@
           </template>
 
           <template #item.actions="{ item }">
+            <v-btn 
+              size="small" 
+              variant="text"
+              :loading="testingId === item.id"
+              @click="testConfig(item)"
+            >
+              测试
+            </v-btn>
             <v-btn
               v-if="!item.is_active"
               size="small"
@@ -241,13 +249,14 @@ const editingConfig = ref<LlmConfig | null>(null)
 const defaultRole = ref<LlmRole>('big')
 const deletingConfig = ref<LlmConfig | null>(null)
 const deleting = ref(false)
+const testingId = ref<string | null>(null)
 
 const headers = [
   { title: '名称', key: 'name', sortable: false },
   { title: 'Provider', key: 'provider', sortable: false, width: 120 },
   { title: '模型', key: 'model_name', sortable: false },
   { title: '角色', key: 'role', sortable: false, width: 100 },
-  { title: '操作', key: 'actions', sortable: false, width: 200 }
+  { title: '操作', key: 'actions', sortable: false, width: 280 }
 ]
 
 const bigConfigs = computed(() => store.configs.filter(c => c.role === 'big'))
@@ -316,6 +325,23 @@ async function switchConfig(config: LlmConfig) {
     notification.success(`已切换到 "${config.name}"`)
   } catch (e) {
     notification.error(e instanceof Error ? e.message : '切换失败')
+  }
+}
+
+async function testConfig(config: LlmConfig) {
+  testingId.value = config.id
+  notification.info(`正在测试 "${config.name}" 连接...`)
+  try {
+    const result = await store.testConfigById(config.id)
+    if (result.success) {
+      notification.success(`连接成功！响应时间: ${result.response_time_ms}ms`)
+    } else {
+      notification.error(`连接失败: ${result.message}`)
+    }
+  } catch (e) {
+    notification.error(e instanceof Error ? e.message : '测试失败')
+  } finally {
+    testingId.value = null
   }
 }
 
