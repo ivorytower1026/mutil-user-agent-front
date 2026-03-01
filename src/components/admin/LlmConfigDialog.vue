@@ -113,8 +113,33 @@
             persistent-hint
           />
         </v-form>
+
+        <v-alert
+          v-if="testResult"
+          :type="testResult.success ? 'success' : 'error'"
+          class="mt-4"
+          closable
+          @click:close="testResult = null"
+        >
+          <div class="d-flex align-center">
+            <v-icon :icon="testResult.success ? 'mdi-check-circle' : 'mdi-alert-circle'" class="mr-2" />
+            <span>{{ testResult.message }}</span>
+          </div>
+          <div v-if="testResult.response_time_ms" class="mt-1 text-caption">
+            响应时间: {{ testResult.response_time_ms }}ms
+          </div>
+        </v-alert>
       </v-card-text>
       <v-card-actions>
+        <v-btn
+          variant="outlined"
+          prepend-icon="mdi-connection"
+          :loading="testing"
+          :disabled="!canTest"
+          @click="handleTest"
+        >
+          测试连接
+        </v-btn>
         <v-spacer />
         <v-btn @click="$emit('update:modelValue', false)">取消</v-btn>
         <v-btn color="primary" :disabled="!isValid" :loading="saving" @click="handleSave">
@@ -128,12 +153,14 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useLlmStore } from '@/stores/llm'
-import type { LlmConfig, LlmConfigCreate, LlmProvider, LlmRole } from '@/types/llm'
+import { useNotification } from '@/stores/notification'
+import type { LlmConfig, LlmConfigCreate, LlmProvider, LlmRole, LlmTestResult } from '@/types/llm'
 import { PROVIDER_DEFAULT_URLS, PROVIDER_LABELS, ROLE_LABELS } from '@/types/llm'
 
 const props = defineProps<{
   modelValue: boolean
   config: LlmConfig | null
+  defaultRole?: LlmRole
 }>()
 
 const emit = defineEmits<{
@@ -142,12 +169,19 @@ const emit = defineEmits<{
 }>()
 
 const store = useLlmStore()
+const notification = useNotification()
 const formRef = ref()
 const isValid = ref(false)
 const saving = ref(false)
+const testing = ref(false)
 const showApiKey = ref(false)
+const testResult = ref<LlmTestResult | null>(null)
 
 const isEdit = computed(() => !!props.config)
+
+const canTest = computed(() => {
+  return form.value.base_url && form.value.api_key && form.value.model_name
+})
 
 const form = ref<LlmConfigCreate>({
   name: '',
@@ -155,7 +189,7 @@ const form = ref<LlmConfigCreate>({
   description: '',
   provider: 'ollama',
   base_url: PROVIDER_DEFAULT_URLS.ollama,
-  api_key: '',
+  api_key: 'EMPTY',
   model_name: '',
   temperature: 0.7,
   max_tokens: 4096,
@@ -185,11 +219,13 @@ function onProviderChange(provider: LlmProvider) {
   } else {
     form.value.api_key = ''
   }
+  testResult.value = null
 }
 
 watch(() => props.modelValue, (val) => {
   if (val) {
     showApiKey.value = false
+    testResult.value = null
     if (props.config) {
       form.value = {
         name: props.config.name,
@@ -206,6 +242,9 @@ watch(() => props.modelValue, (val) => {
       }
     } else {
       resetForm()
+      if (props.defaultRole) {
+        form.value.role = props.defaultRole
+      }
     }
   }
 })
@@ -223,6 +262,37 @@ function resetForm() {
     max_tokens: 4096,
     role: 'big',
     activate: false
+  }
+}
+
+async function handleTest() {
+  if (!canTest.value) return
+  
+  testResult.value = null
+  notification.info('正在请求 LLM 连接...')
+  testing.value = true
+  
+  try {
+    testResult.value = await store.testConnection({
+      base_url: form.value.base_url,
+      api_key: form.value.api_key,
+      model_name: form.value.model_name
+    })
+    
+    if (testResult.value.success) {
+      notification.success(`连接成功！响应时间: ${testResult.value.response_time_ms}ms`)
+    } else {
+      notification.error(`连接失败: ${testResult.value.message}`)
+    }
+  } catch (e) {
+    const errorMsg = e instanceof Error ? e.message : '测试失败'
+    testResult.value = {
+      success: false,
+      message: errorMsg
+    }
+    notification.error(errorMsg)
+  } finally {
+    testing.value = false
   }
 }
 
