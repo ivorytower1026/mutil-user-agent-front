@@ -50,7 +50,7 @@
         <v-list-item
           v-if="isAdmin"
           prepend-icon="mdi-cog"
-          to="/admin/skills"
+          to="/admin/simple-skills"
         >
           <v-list-item-title>管理中心</v-list-item-title>
         </v-list-item>
