@@ -48,6 +48,12 @@ const routes = [
         meta: { title: 'MCP 配置' }
       },
       {
+        path: 'llm',
+        name: 'AdminLlm',
+        component: () => import('@/views/admin/AdminLlm.vue'),
+        meta: { title: 'LLM 配置' }
+      },
+      {
         path: 'agents',
         name: 'AdminAgents',
         component: () => import('@/views/admin/AdminAgents.vue'),

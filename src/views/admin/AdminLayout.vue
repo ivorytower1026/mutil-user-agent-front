@@ -24,6 +24,12 @@
           value="mcp"
         />
         <v-list-item
+          to="/admin/llm"
+          prepend-icon="mdi-brain"
+          title="LLM 配置"
+          value="llm"
+        />
+        <v-list-item
           to="/admin/agents"
           prepend-icon="mdi-robot"
           title="代理配置"
