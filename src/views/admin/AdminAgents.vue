@@ -6,7 +6,7 @@
         color="secondary"
         prepend-icon="mdi-refresh"
         :loading="store.isLoading"
-        @click="store.reload"
+        @click="handleReload"
       >
         重新加载
       </v-btn>
@@ -168,11 +168,21 @@ const availableSkills = ref<string[]>([])
 
 const subagentNames = computed(() => store.subagents.map(s => s.name))
 
+async function handleReload() {
+  try {
+    await store.reload()
+    notification.success('代理配置已重新加载')
+  } catch (e) {
+    notification.error(e instanceof Error ? e.message : '重新加载失败')
+  }
+}
+
 async function saveMainConfig() {
   savingMain.value = true
   try {
     await store.updateMain(mainForm.value)
-    notification.success('主代理配置已保存')
+    await store.reload()
+    notification.success('主代理配置已保存并重新加载')
   } catch (e) {
     notification.error(e instanceof Error ? e.message : '保存失败')
   } finally {
