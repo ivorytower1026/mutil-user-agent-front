@@ -21,19 +21,43 @@ const routes = [
     children: [
       {
         path: '',
-        redirect: '/admin/skills'
+        redirect: '/admin/simple-skills'
       },
+      // {
+      //   path: 'skills',
+      //   name: 'AdminSkills',
+      //   component: () => import('@/views/admin/AdminSkills.vue'),
+      //   meta: { title: 'Skill 管理' }
+      // },
+      // {
+      //   path: 'skills/:id',
+      //   name: 'AdminSkillDetail',
+      //   component: () => import('@/views/admin/SkillDetail.vue'),
+      //   meta: { title: 'Skill 详情' }
+      // },
       {
-        path: 'skills',
-        name: 'AdminSkills',
-        component: () => import('@/views/admin/AdminSkills.vue'),
+        path: 'simple-skills',
+        name: 'AdminSimpleSkills',
+        component: () => import('@/views/admin/SimpleSkills.vue'),
         meta: { title: 'Skill 管理' }
       },
       {
-        path: 'skills/:id',
-        name: 'AdminSkillDetail',
-        component: () => import('@/views/admin/SkillDetail.vue'),
-        meta: { title: 'Skill 详情' }
+        path: 'mcp',
+        name: 'AdminMcp',
+        component: () => import('@/views/admin/AdminMcp.vue'),
+        meta: { title: 'MCP 配置' }
+      },
+      {
+        path: 'llm',
+        name: 'AdminLlm',
+        component: () => import('@/views/admin/AdminLlm.vue'),
+        meta: { title: 'LLM 配置' }
+      },
+      {
+        path: 'agents',
+        name: 'AdminAgents',
+        component: () => import('@/views/admin/AdminAgents.vue'),
+        meta: { title: 'agent配置' }
       }
     ]
   },

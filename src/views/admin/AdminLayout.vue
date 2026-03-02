@@ -5,23 +5,35 @@
         <v-list-item prepend-icon="mdi-arrow-left" title="返回主页" to="/" />
         <v-divider class="my-2" />
         <v-list-subheader>配置管理</v-list-subheader>
-        <v-list-item
+        <!-- <v-list-item
           to="/admin/skills"
           prepend-icon="mdi-puzzle"
           title="Skill 管理"
           value="skills"
+        /> -->
+        <v-list-item
+          to="/admin/simple-skills"
+          prepend-icon="mdi-puzzle"
+          title="Skill 管理"
+          value="simple-skills"
         />
         <v-list-item
-          disabled
-          prepend-icon="mdi-robot"
-          title="模型配置"
-          subtitle="即将上线"
-        />
-        <v-list-item
-          disabled
+          to="/admin/mcp"
           prepend-icon="mdi-connection"
           title="MCP 配置"
-          subtitle="即将上线"
+          value="mcp"
+        />
+        <v-list-item
+          to="/admin/llm"
+          prepend-icon="mdi-brain"
+          title="LLM 配置"
+          value="llm"
+        />
+        <v-list-item
+          to="/admin/agents"
+          prepend-icon="mdi-robot"
+          title="agent配置"
+          value="agents"
         />
       </v-list>
     </v-navigation-drawer>

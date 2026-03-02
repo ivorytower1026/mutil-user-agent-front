@@ -5,7 +5,10 @@ import type {
   UploadResponse,
   ApproveResponse,
   RejectResponse,
-  FullTestResponse
+  FullTestResponse,
+  SimpleSkillItem,
+  SimpleSkillListResponse,
+  SimpleSkillResponse
 } from '@/types/admin'
 
 const BASE = '/api/admin'
@@ -64,6 +67,41 @@ export const adminApi = {
 
   async fullTest(): Promise<FullTestResponse> {
     const response = await api.post<FullTestResponse>(`${BASE}/skills/full-test`)
+    return response.data
+  },
+
+  async uploadSkillSimple(file: File): Promise<SimpleSkillResponse> {
+    const formData = new FormData()
+    formData.append('file', file)
+    const response = await api.post<SimpleSkillResponse>(`${BASE}/skills/simple/upload`, formData, {
+      headers: { 'Content-Type': undefined }
+    })
+    return response.data
+  },
+
+  async getSimpleSkills(status?: string): Promise<SimpleSkillListResponse> {
+    const response = await api.get<SimpleSkillListResponse>(`${BASE}/skills/simple`, { 
+      params: { status } 
+    })
+    return response.data
+  },
+
+  async deleteSimpleSkill(name: string): Promise<void> {
+    await api.delete(`${BASE}/skills/simple/${name}`)
+  },
+
+  async enableSimpleSkill(skillId: string): Promise<{ skill_id: string; status: string }> {
+    const response = await api.post(`${BASE}/skills/simple/${skillId}/enable`)
+    return response.data
+  },
+
+  async disableSimpleSkill(skillId: string): Promise<{ skill_id: string; status: string }> {
+    const response = await api.post(`${BASE}/skills/simple/${skillId}/disable`)
+    return response.data
+  },
+
+  async syncSimpleSkills(): Promise<{ synced: number; message: string }> {
+    const response = await api.post(`${BASE}/skills/simple/sync`)
     return response.data
   }
 }
