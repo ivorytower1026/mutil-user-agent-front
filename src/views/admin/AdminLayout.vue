@@ -12,12 +12,6 @@
           value="skills"
         />
         <v-list-item
-          to="/admin/images"
-          prepend-icon="mdi-package-variant"
-          title="镜像版本"
-          value="images"
-        />
-        <v-list-item
           disabled
           prepend-icon="mdi-robot"
           title="模型配置"

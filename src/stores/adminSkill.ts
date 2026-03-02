@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { SkillListItem, SkillDetail, ImageVersion } from '@/types/admin'
+import type { SkillListItem, SkillDetail } from '@/types/admin'
 import { adminApi } from '@/api/admin'
 
 export const useAdminSkillStore = defineStore('adminSkill', () => {
@@ -9,14 +9,11 @@ export const useAdminSkillStore = defineStore('adminSkill', () => {
   const currentReport = ref<string>('')
   const isLoading = ref(false)
   const reportLoading = ref(false)
+  const fullTestLoading = ref(false)
   const error = ref<string | null>(null)
   const total = ref(0)
   const page = ref(1)
   const size = ref(20)
-
-  const imageVersions = ref<ImageVersion[]>([])
-  const currentImageVersion = ref<string>('')
-  const imagesLoading = ref(false)
 
   const pendingCount = computed(() =>
     skills.value.filter(s => s.status === 'pending' && s.validation_stage === 'completed').length
@@ -59,7 +56,7 @@ export const useAdminSkillStore = defineStore('adminSkill', () => {
       if (typeof response === 'string') {
         currentReport.value = response
       } else if (response && typeof response === 'object' && 'content' in response) {
-        currentReport.value = response.content
+        currentReport.value = (response as { content: string }).content
       } else {
         currentReport.value = String(response)
       }
@@ -99,23 +96,14 @@ export const useAdminSkillStore = defineStore('adminSkill', () => {
     currentReport.value = ''
   }
 
-  async function fetchImageVersions() {
-    imagesLoading.value = true
+  async function fullTest() {
+    fullTestLoading.value = true
     try {
-      const response = await adminApi.getImageVersions()
-      imageVersions.value = response.versions
-      currentImageVersion.value = response.current_version
-    } catch (e) {
-      console.error('Failed to fetch image versions:', e)
+      const response = await adminApi.fullTest()
+      return response
     } finally {
-      imagesLoading.value = false
+      fullTestLoading.value = false
     }
-  }
-
-  async function rollbackImage(targetVersion: string) {
-    const response = await adminApi.rollbackImage(targetVersion)
-    await fetchImageVersions()
-    return response
   }
 
   return {
@@ -124,14 +112,12 @@ export const useAdminSkillStore = defineStore('adminSkill', () => {
     currentReport,
     isLoading,
     reportLoading,
+    fullTestLoading,
     error,
     total,
     page,
     size,
     pendingCount,
-    imageVersions,
-    currentImageVersion,
-    imagesLoading,
     fetchSkills,
     fetchSkillDetail,
     fetchSkillReport,
@@ -140,7 +126,6 @@ export const useAdminSkillStore = defineStore('adminSkill', () => {
     revalidateSkill,
     deleteSkill,
     clearCurrentSkill,
-    fetchImageVersions,
-    rollbackImage
+    fullTest
   }
 })

@@ -30,6 +30,26 @@
             </v-card-text>
           </v-card>
 
+          <v-card v-if="store.currentSkill.validation_tasks?.length" class="mb-4">
+            <v-card-title>验证任务</v-card-title>
+            <v-card-text>
+              <v-list density="compact">
+                <v-list-item
+                  v-for="task in store.currentSkill.validation_tasks"
+                  :key="task.task_id"
+                >
+                  <template #prepend>
+                    <v-chip size="x-small" color="primary" class="mr-2">{{ task.task_id }}</v-chip>
+                  </template>
+                  <v-list-item-title>
+                    {{ task.task }}
+                    <v-chip v-if="task.is_new" size="x-small" color="success" class="ml-2">新增</v-chip>
+                  </v-list-item-title>
+                </v-list-item>
+              </v-list>
+            </v-card-text>
+          </v-card>
+
           <v-card v-if="store.currentSkill.task_results?.length" class="mb-4">
             <v-card-title>任务执行详情</v-card-title>
             <v-card-text>
@@ -37,28 +57,56 @@
                 <thead>
                   <tr>
                     <th>任务</th>
-                    <th>状态</th>
+                    <th>分数</th>
                     <th>使用 Skill</th>
-                    <th>执行时间</th>
+                    <th>原因</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="task in store.currentSkill.task_results" :key="task.task">
+                  <tr v-for="task in store.currentSkill.task_results" :key="task.task_id">
                     <td>{{ task.task }}</td>
                     <td>
-                      <v-icon :color="task.completed ? 'success' : 'error'" size="small">
-                        {{ task.completed ? 'mdi-check-circle' : 'mdi-close-circle' }}
-                      </v-icon>
+                      <v-chip :color="task.converted_score >= 60 ? 'success' : 'error'" size="small">
+                        {{ task.converted_score }}
+                      </v-chip>
                     </td>
                     <td>
                       <span :class="{ 'text-success': task.correct_skill_used }">
                         {{ task.skill_used || '-' }}
                       </span>
                     </td>
-                    <td>{{ task.execution_time_ms }}ms</td>
+                    <td class="text-caption">{{ task.reason }}</td>
                   </tr>
                 </tbody>
               </v-table>
+            </v-card-text>
+          </v-card>
+
+          <v-card v-if="store.currentSkill.full_test_results" class="mb-4">
+            <v-card-title>
+              全量测试结果
+              <v-chip :color="store.currentSkill.full_test_results.passed ? 'success' : 'error'" size="small" class="ml-2">
+                {{ store.currentSkill.full_test_results.passed ? '通过' : '未通过' }}
+              </v-chip>
+            </v-card-title>
+            <v-card-text>
+              <v-row class="mb-2">
+                <v-col cols="4">
+                  <div class="text-caption text-medium-emphasis">测试总数</div>
+                  <div class="text-h6">{{ store.currentSkill.full_test_results.total_tested }}</div>
+                </v-col>
+                <v-col cols="4">
+                  <div class="text-caption text-medium-emphasis">失败数</div>
+                  <div class="text-h6">{{ store.currentSkill.full_test_results.failed_count }}</div>
+                </v-col>
+                <v-col cols="4">
+                  <div class="text-caption text-medium-emphasis">上次测试</div>
+                  <div class="text-body-2">{{ store.currentSkill.last_full_test_at ? formatDate(store.currentSkill.last_full_test_at) : '-' }}</div>
+                </v-col>
+              </v-row>
+              <v-alert v-if="store.currentSkill.full_test_results.failed_skills?.length" type="warning" density="compact">
+                失败的 Skill: {{ store.currentSkill.full_test_results.failed_skills.join(', ') }}
+              </v-alert>
             </v-card-text>
           </v-card>
         </v-col>
@@ -110,9 +158,9 @@
                 <v-list-item-title>验证时间</v-list-item-title>
                 <v-list-item-subtitle>{{ formatDate(store.currentSkill.validated_at) }}</v-list-item-subtitle>
               </v-list-item>
-              <v-list-item v-if="store.currentSkill.runtime_image_version">
-                <v-list-item-title>镜像版本</v-list-item-title>
-                <v-list-item-subtitle>{{ store.currentSkill.runtime_image_version }}</v-list-item-subtitle>
+              <v-list-item v-if="store.currentSkill.last_full_test_at">
+                <v-list-item-title>上次全量测试</v-list-item-title>
+                <v-list-item-subtitle>{{ formatDate(store.currentSkill.last_full_test_at) }}</v-list-item-subtitle>
               </v-list-item>
             </v-list>
           </v-card>
@@ -127,32 +175,6 @@
                 <div v-for="warn in store.currentSkill.format_warnings" :key="warn">- {{ warn }}</div>
               </v-alert>
             </v-card-text>
-          </v-card>
-
-          <v-card v-if="store.currentSkill.execution_metrics" class="mb-4">
-            <v-card-title>执行监控</v-card-title>
-            <v-list density="compact">
-              <v-list-item>
-                <v-list-item-title>CPU 使用率</v-list-item-title>
-                <v-list-item-subtitle>{{ store.currentSkill.execution_metrics.cpu_percent }}%</v-list-item-subtitle>
-              </v-list-item>
-              <v-list-item>
-                <v-list-item-title>内存使用</v-list-item-title>
-                <v-list-item-subtitle>{{ store.currentSkill.execution_metrics.memory_mb }} MB</v-list-item-subtitle>
-              </v-list-item>
-              <v-list-item>
-                <v-list-item-title>磁盘读取</v-list-item-title>
-                <v-list-item-subtitle>{{ store.currentSkill.execution_metrics.disk_read_mb }} MB</v-list-item-subtitle>
-              </v-list-item>
-              <v-list-item>
-                <v-list-item-title>磁盘写入</v-list-item-title>
-                <v-list-item-subtitle>{{ store.currentSkill.execution_metrics.disk_write_mb }} MB</v-list-item-subtitle>
-              </v-list-item>
-              <v-list-item>
-                <v-list-item-title>执行时间</v-list-item-title>
-                <v-list-item-subtitle>{{ store.currentSkill.execution_metrics.execution_time_sec }} 秒</v-list-item-subtitle>
-              </v-list-item>
-            </v-list>
           </v-card>
 
           <v-card v-if="Object.keys(store.currentSkill.regression_results || {}).length" class="mb-4">

@@ -23,9 +23,6 @@ const { color, label } = computed(() => {
   if (props.status === 'rejected') {
     return { color: 'error', label: '已拒绝' }
   }
-  if (props.status === 'rollback_pending') {
-    return { color: 'warning', label: '回滚待处理' }
-  }
   if (props.stage === 'completed') {
     return { color: 'warning', label: '待审核' }
   }

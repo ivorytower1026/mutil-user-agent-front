@@ -42,15 +42,6 @@
             {{ skill.offline_capability_score }}/100
           </v-list-item-subtitle>
         </v-list-item>
-        <v-list-item v-if="skill.resource_efficiency_score != null">
-          <template #prepend>
-            <v-icon size="small">mdi-speedometer</v-icon>
-          </template>
-          <v-list-item-title>资源效率</v-list-item-title>
-          <v-list-item-subtitle class="text-right">
-            {{ skill.resource_efficiency_score }}/100
-          </v-list-item-subtitle>
-        </v-list-item>
       </v-list>
     </v-card-text>
   </v-card>
