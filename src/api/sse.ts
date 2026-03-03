@@ -1,65 +1,117 @@
-import type { SSEEvent } from '@/types'
+import type { SSEEvent } from '@/types/sse'
 import type { AgentMode } from '@/types/chat'
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
 
-function getToken(): string | null {
+function getAuthHeaders(): Record<string, string> {
   const stored = sessionStorage.getItem('auth')
-  if (stored) {
-    try {
-      const auth = JSON.parse(stored)
-      return auth.token || null
-    } catch {
-      return null
-    }
+  if (!stored) return {}
+  try {
+    const { token } = JSON.parse(stored)
+    return token ? { Authorization: `Bearer ${token}` } : {}
+  } catch {
+    return {}
   }
-  return null
 }
 
-interface ParsedSSE {
+interface RawSSEEvent {
   event: string
   data: Record<string, unknown>
 }
 
-function parseSSE(text: string): ParsedSSE[] {
-  const events: ParsedSSE[] = []
-  const lines = text.split('\n')
-  let currentEvent = ''
-
-  for (const line of lines) {
+function parseEventBlock(block: string): RawSSEEvent | null {
+  let event = ''
+  let data = ''
+  
+  for (const line of block.split('\n')) {
     if (line.startsWith('event:')) {
-      currentEvent = line.slice(6).trim()
+      event = line.slice(6).trim()
     } else if (line.startsWith('data:')) {
-      const dataStr = line.slice(5).trim()
-      if (dataStr && currentEvent) {
-        try {
-          const data = JSON.parse(dataStr)
-          events.push({ event: currentEvent, data })
-          currentEvent = ''
-        } catch (e) {
-          console.error('Failed to parse SSE data:', dataStr, e)
-        }
-      }
+      data = line.slice(5).trim()
     }
   }
-
-  return events
+  
+  if (!event || !data) return null
+  
+  try {
+    return { event, data: JSON.parse(data) }
+  } catch {
+    return null
+  }
 }
 
-function mapEventToSSEEvent(parsed: ParsedSSE): SSEEvent {
-  const { event, data } = parsed
+async function* parseSSEStream(
+  stream: ReadableStream<Uint8Array>
+): AsyncGenerator<RawSSEEvent> {
+  const reader = stream.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      
+      buffer += decoder.decode(value, { stream: true })
+      
+      const events = buffer.split('\n\n')
+      buffer = events.pop() || ''
+      
+      for (const eventBlock of events) {
+        const parsed = parseEventBlock(eventBlock)
+        if (parsed) yield parsed
+      }
+    }
+    
+    if (buffer.trim()) {
+      const parsed = parseEventBlock(buffer)
+      if (parsed) yield parsed
+    }
+  } finally {
+    reader.releaseLock()
+  }
+}
+
+function mapToSSEEvent(raw: RawSSEEvent): SSEEvent {
   return {
-    event: event as SSEEvent['event'],
-    content: data.content as string | undefined,
-    is_final: data.is_final as boolean | undefined,
-    tool: data.tool as string | undefined,
-    status: data.status as 'running' | 'completed' | undefined,
-    info: data.info as string | undefined,
-    message: data.message as string | undefined,
-    data: data.data as Record<string, unknown> | undefined,
-    title: data.title as string | undefined,
-    questions: data.questions as SSEEvent['questions'],
-    todos: data.todos as SSEEvent['todos'],
+    event: raw.event as SSEEvent['event'],
+    content: raw.data.content as string | undefined,
+    tool: raw.data.tool as string | undefined,
+    status: raw.data.status as 'running' | 'completed' | undefined,
+    info: raw.data.info as string | undefined,
+    message: raw.data.message as string | undefined,
+    data: raw.data.data as Record<string, unknown> | undefined,
+    title: raw.data.title as string | undefined,
+    questions: raw.data.questions as SSEEvent['questions'],
+    todos: raw.data.todos as SSEEvent['todos'],
+  }
+}
+
+async function* streamRequest<T extends object>(
+  endpoint: string,
+  body: T,
+  signal?: AbortSignal
+): AsyncGenerator<SSEEvent> {
+  const response = await fetch(`${BASE_URL}${endpoint}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders()
+    },
+    body: JSON.stringify(body),
+    signal
+  })
+  
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${await response.text()}`)
+  }
+  
+  if (!response.body) {
+    throw new Error('Response body is null')
+  }
+  
+  for await (const raw of parseSSEStream(response.body)) {
+    yield mapToSSEEvent(raw)
   }
 }
 
@@ -70,54 +122,7 @@ export async function* streamChat(
   signal?: AbortSignal,
   mode: AgentMode = 'build'
 ): AsyncGenerator<SSEEvent> {
-  const token = getToken()
-  
-  const response = await fetch(`${BASE_URL}/api/chat/${threadId}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {})
-    },
-    body: JSON.stringify({ message, files, mode }),
-    signal
-  })
-
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`)
-  }
-
-  const reader = response.body!.getReader()
-  const decoder = new TextDecoder()
-  let buffer = ''
-
-  try {
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-
-      buffer += decoder.decode(value, { stream: true })
-      
-      const lastNewline = buffer.lastIndexOf('\n')
-      if (lastNewline >= 0) {
-        const toProcess = buffer.slice(0, lastNewline)
-        buffer = buffer.slice(lastNewline + 1)
-        
-        const parsedEvents = parseSSE(toProcess)
-        for (const parsed of parsedEvents) {
-          yield mapEventToSSEEvent(parsed)
-        }
-      }
-    }
-
-    if (buffer.trim()) {
-      const parsedEvents = parseSSE(buffer)
-      for (const parsed of parsedEvents) {
-        yield mapEventToSSEEvent(parsed)
-      }
-    }
-  } finally {
-    reader.releaseLock()
-  }
+  yield* streamRequest(`/api/chat/${threadId}`, { message, files, mode }, signal)
 }
 
 export async function* streamResume(
@@ -127,57 +132,7 @@ export async function* streamResume(
   signal?: AbortSignal,
   mode: AgentMode = 'build'
 ): AsyncGenerator<SSEEvent> {
-  const token = getToken()
-  
-  const body: Record<string, unknown> = { action, mode }
-  if (answers) {
-    body.answers = answers
-  }
-  
-  const response = await fetch(`${BASE_URL}/api/resume/${threadId}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {})
-    },
-    body: JSON.stringify(body),
-    signal
-  })
-
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`)
-  }
-
-  const reader = response.body!.getReader()
-  const decoder = new TextDecoder()
-  let buffer = ''
-
-  try {
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-
-      buffer += decoder.decode(value, { stream: true })
-      
-      const lastNewline = buffer.lastIndexOf('\n')
-      if (lastNewline >= 0) {
-        const toProcess = buffer.slice(0, lastNewline)
-        buffer = buffer.slice(lastNewline + 1)
-        
-        const parsedEvents = parseSSE(toProcess)
-        for (const parsed of parsedEvents) {
-          yield mapEventToSSEEvent(parsed)
-        }
-      }
-    }
-
-    if (buffer.trim()) {
-      const parsedEvents = parseSSE(buffer)
-      for (const parsed of parsedEvents) {
-        yield mapEventToSSEEvent(parsed)
-      }
-    }
-  } finally {
-    reader.releaseLock()
-  }
+  const body: { action: string; answers?: string[]; mode: AgentMode } = { action, mode }
+  if (answers) body.answers = answers
+  yield* streamRequest(`/api/resume/${threadId}`, body, signal)
 }
