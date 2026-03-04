@@ -48,7 +48,7 @@
                 label="角色"
                 :rules="[rules.required]"
                 :disabled="isEdit"
-                hint="big=主模型, flash=快速模型"
+                :hint="form.role === 'embedding' ? 'Embedding模型用于向量化' : 'big=主模型, flash=快速模型'"
                 persistent-hint
               />
             </v-col>
@@ -79,7 +79,7 @@
           />
 
           <v-row class="mt-2">
-            <v-col cols="12" sm="6">
+            <v-col v-if="!isEmbedding" cols="12" sm="6">
               <v-text-field
                 v-model.number="form.temperature"
                 label="Temperature"
@@ -94,14 +94,25 @@
             <v-col cols="12" sm="6">
               <v-text-field
                 v-model.number="form.max_tokens"
-                label="Max Tokens"
+                :label="isEmbedding ? 'Max Tokens' : 'Max Tokens'"
                 type="number"
                 min="1"
-                hint="默认 4096"
+                :hint="isEmbedding ? '默认 512' : '默认 4096'"
                 persistent-hint
               />
             </v-col>
           </v-row>
+
+          <v-text-field
+            v-if="isEmbedding"
+            v-model.number="embeddingDims"
+            label="向量维度 (embedding_dims)"
+            type="number"
+            min="1"
+            class="mt-2"
+            hint="用于Qdrant向量数据库配置，如 1024、768、1536"
+            persistent-hint
+          />
 
           <v-checkbox
             v-if="!isEdit"
@@ -127,6 +138,15 @@
           </div>
           <div v-if="testResult.response_time_ms" class="mt-1 text-caption">
             响应时间: {{ testResult.response_time_ms }}ms
+          </div>
+          <div v-if="testResult.response_preview" class="mt-1 text-caption">
+            响应预览: {{ testResult.response_preview }}
+          </div>
+          <div v-if="testResult.vector_dim" class="mt-1 text-caption">
+            向量维度: {{ testResult.vector_dim }}
+          </div>
+          <div v-if="testResult.vector_preview?.length" class="mt-1 text-caption">
+            向量预览: [{{ testResult.vector_preview.slice(0, 5).map(v => v.toFixed(3)).join(', ') }}...]
           </div>
         </v-alert>
       </v-card-text>
@@ -178,6 +198,7 @@ const showApiKey = ref(false)
 const testResult = ref<LlmTestResult | null>(null)
 
 const isEdit = computed(() => !!props.config)
+const isEmbedding = computed(() => form.value.role === 'embedding')
 
 const canTest = computed(() => {
   return form.value.base_url && form.value.api_key && form.value.model_name
@@ -194,8 +215,11 @@ const form = ref<LlmConfigCreate>({
   temperature: 0.7,
   max_tokens: 4096,
   role: 'big',
-  activate: false
+  activate: false,
+  extra_params: {}
 })
+
+const embeddingDims = ref<number | undefined>(undefined)
 
 const providerOptions = Object.entries(PROVIDER_LABELS).map(([value, title]) => ({
   title,
@@ -238,8 +262,10 @@ watch(() => props.modelValue, (val) => {
         temperature: props.config.temperature,
         max_tokens: props.config.max_tokens,
         role: props.config.role,
-        activate: false
+        activate: false,
+        extra_params: props.config.extra_params || {}
       }
+      embeddingDims.value = (props.config.extra_params?.embedding_dims as number) || undefined
     } else {
       resetForm()
       if (props.defaultRole) {
@@ -261,23 +287,32 @@ function resetForm() {
     temperature: 0.7,
     max_tokens: 4096,
     role: 'big',
-    activate: false
+    activate: false,
+    extra_params: {}
   }
+  embeddingDims.value = undefined
 }
 
 async function handleTest() {
   if (!canTest.value) return
   
   testResult.value = null
-  notification.info('正在请求 LLM 连接...')
+  const testType = isEmbedding.value ? 'Embedding' : 'LLM'
+  notification.info(`正在请求 ${testType} 连接...`)
   testing.value = true
   
   try {
-    testResult.value = await store.testConnection({
+    const testData = {
       base_url: form.value.base_url,
       api_key: form.value.api_key,
       model_name: form.value.model_name
-    })
+    }
+    
+    if (isEmbedding.value) {
+      testResult.value = await store.testEmbeddingConnection(testData)
+    } else {
+      testResult.value = await store.testConnection(testData)
+    }
     
     if (testResult.value.success) {
       notification.success(`连接成功！响应时间: ${testResult.value.response_time_ms}ms`)
@@ -302,6 +337,10 @@ async function handleSave() {
 
   saving.value = true
   try {
+    if (isEmbedding.value && embeddingDims.value) {
+      form.value.extra_params = { embedding_dims: embeddingDims.value }
+    }
+    
     if (isEdit.value) {
       const updateData = {
         display_name: form.value.display_name || undefined,
@@ -310,7 +349,8 @@ async function handleSave() {
         api_key: form.value.api_key || undefined,
         model_name: form.value.model_name,
         temperature: form.value.temperature,
-        max_tokens: form.value.max_tokens
+        max_tokens: form.value.max_tokens,
+        extra_params: form.value.extra_params
       }
       await store.updateConfig(props.config!.id, updateData)
     } else {

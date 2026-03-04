@@ -1,5 +1,5 @@
 export type LlmProvider = 'ollama' | 'vllm' | 'openai' | 'zhipuai'
-export type LlmRole = 'big' | 'flash'
+export type LlmRole = 'big' | 'flash' | 'embedding'
 
 export interface LlmConfig {
   id: string
@@ -55,6 +55,8 @@ export interface LlmTestResult {
   message: string
   response_time_ms?: number
   response_preview?: string
+  vector_dim?: number
+  vector_preview?: number[]
 }
 
 export interface LlmConfigListResponse {
@@ -78,5 +80,6 @@ export const PROVIDER_LABELS: Record<LlmProvider, string> = {
 
 export const ROLE_LABELS: Record<LlmRole, string> = {
   big: '主模型',
-  flash: '快速模型'
+  flash: '快速模型',
+  embedding: 'Embedding'
 }

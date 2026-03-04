@@ -46,6 +46,10 @@ export const useLlmStore = defineStore('llm', () => {
     return await llmApi.test(data)
   }
 
+  async function testEmbeddingConnection(data: LlmTestRequest): Promise<LlmTestResult> {
+    return await llmApi.testEmbedding(data)
+  }
+
   async function testConfigById(id: string): Promise<LlmTestResult> {
     return await llmApi.testConfig(id)
   }
@@ -60,6 +64,7 @@ export const useLlmStore = defineStore('llm', () => {
     deleteConfig,
     activateConfig,
     testConnection,
+    testEmbeddingConnection,
     testConfigById
   }
 })

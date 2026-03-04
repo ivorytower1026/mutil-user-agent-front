@@ -45,6 +45,11 @@ export const llmApi = {
     return response.data
   },
 
+  async testEmbedding(data: LlmTestRequest): Promise<LlmTestResult> {
+    const response = await api.post<LlmTestResult>(`${BASE}/embedding/test`, data)
+    return response.data
+  },
+
   async testConfig(id: string): Promise<LlmTestResult> {
     const response = await api.post<LlmTestResult>(`${BASE}/configs/${id}/test`)
     return response.data

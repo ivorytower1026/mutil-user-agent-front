@@ -6,7 +6,7 @@
       <v-card-title class="text-subtitle-1 pb-0">当前模型配置</v-card-title>
       <v-card-text>
         <v-row>
-          <v-col cols="12" md="6">
+          <v-col cols="12" md="4">
             <v-card variant="outlined" class="h-100">
               <v-card-text>
                 <div class="d-flex justify-space-between align-center mb-2">
@@ -71,7 +71,7 @@
               </v-card-text>
             </v-card>
           </v-col>
-          <v-col cols="12" md="6">
+          <v-col cols="12" md="4">
             <v-card variant="outlined" class="h-100">
               <v-card-text>
                 <div class="d-flex justify-space-between align-center mb-2">
@@ -132,6 +132,74 @@
                 </template>
                 <div v-else class="text-medium-emphasis">
                   未配置快速模型
+                </div>
+              </v-card-text>
+            </v-card>
+          </v-col>
+          <v-col cols="12" md="4">
+            <v-card variant="outlined" class="h-100">
+              <v-card-text>
+                <div class="d-flex justify-space-between align-center mb-2">
+                  <span class="text-h6">
+                    <v-icon color="info" class="mr-1">mdi-vector-polyline</v-icon>
+                    Embedding
+                  </span>
+                  <v-menu>
+                    <template #activator="{ props }">
+                      <v-btn
+                        v-bind="props"
+                        variant="text"
+                        size="small"
+                        color="primary"
+                        append-icon="mdi-chevron-down"
+                      >
+                        切换
+                      </v-btn>
+                    </template>
+                    <v-list>
+                      <v-list-item
+                        v-for="config in embeddingConfigs"
+                        :key="config.id"
+                        :disabled="config.is_active"
+                        @click="switchConfig(config)"
+                      >
+                        <v-list-item-title>
+                          {{ config.name }}
+                          <v-chip v-if="config.is_active" size="x-small" color="success" class="ml-2">
+                            当前
+                          </v-chip>
+                        </v-list-item-title>
+                        <v-list-item-subtitle>
+                          {{ PROVIDER_LABELS[config.provider] }} · {{ config.model_name }}
+                        </v-list-item-subtitle>
+                      </v-list-item>
+                      <v-divider v-if="embeddingConfigs.length > 0" />
+                      <v-list-item @click="openCreateDialogWithRole('embedding')">
+                        <v-list-item-title>
+                          <v-icon size="small" class="mr-1">mdi-plus</v-icon>
+                          添加 Embedding
+                        </v-list-item-title>
+                      </v-list-item>
+                    </v-list>
+                  </v-menu>
+                </div>
+                <template v-if="activeEmbeddingConfig">
+                  <div class="text-h6 font-weight-medium">{{ activeEmbeddingConfig.name }}</div>
+                  <div class="text-body-2 text-medium-emphasis mt-1">
+                    <v-chip size="small" :color="getProviderColor(activeEmbeddingConfig.provider)" class="mr-2">
+                      {{ PROVIDER_LABELS[activeEmbeddingConfig.provider] }}
+                    </v-chip>
+                    {{ activeEmbeddingConfig.model_name }}
+                  </div>
+                  <div v-if="activeEmbeddingConfig.extra_params?.embedding_dims" class="text-caption text-medium-emphasis mt-1">
+                    向量维度: {{ activeEmbeddingConfig.extra_params.embedding_dims }}
+                  </div>
+                  <div v-else-if="activeEmbeddingConfig.display_name" class="text-caption text-medium-emphasis mt-1">
+                    {{ activeEmbeddingConfig.display_name }}
+                  </div>
+                </template>
+                <div v-else class="text-medium-emphasis">
+                  未配置 Embedding
                 </div>
               </v-card-text>
             </v-card>
@@ -261,9 +329,11 @@ const headers = [
 
 const bigConfigs = computed(() => store.configs.filter(c => c.role === 'big'))
 const flashConfigs = computed(() => store.configs.filter(c => c.role === 'flash'))
+const embeddingConfigs = computed(() => store.configs.filter(c => c.role === 'embedding'))
 
 const activeBigConfig = computed(() => bigConfigs.value.find(c => c.is_active))
 const activeFlashConfig = computed(() => flashConfigs.value.find(c => c.is_active))
+const activeEmbeddingConfig = computed(() => embeddingConfigs.value.find(c => c.is_active))
 
 function getProviderColor(provider: LlmProvider): string {
   switch (provider) {
@@ -279,6 +349,7 @@ function getRoleColor(role: LlmRole): string {
   switch (role) {
     case 'big': return 'error'
     case 'flash': return 'success'
+    case 'embedding': return 'info'
     default: return 'default'
   }
 }
