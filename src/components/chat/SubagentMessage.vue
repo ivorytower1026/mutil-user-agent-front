@@ -1,13 +1,10 @@
 <template>
-  <div class="subagent-message" :class="{ collapsed }">
+  <div class="subagent-message" :class="{ collapsed, streaming: isStreaming }">
     <div class="subagent-header" @click="handleToggle">
       <div class="header-left">
-        <div class="icon-wrapper">
-          <v-icon size="18" class="subagent-icon">mdi-robot-excited</v-icon>
-        </div>
         <div class="title-wrapper">
           <span class="subagent-badge">智能体研究</span>
-          <span class="subagent-label">{{ displayName }}</span>
+          <!-- <span class="subagent-label">{{ displayName }}</span> -->
         </div>
       </div>
       <div class="header-right">
@@ -132,40 +129,6 @@ function handleToggle() {
   gap: 12px;
 }
 
-.icon-wrapper {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, rgba(0, 188, 212, 0.2), rgba(124, 77, 255, 0.2));
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    box-shadow: 0 0 0 0 rgba(0, 188, 212, 0.4);
-  }
-  50% {
-    box-shadow: 0 0 0 8px rgba(0, 188, 212, 0);
-  }
-}
-
-.subagent-icon {
-  color: #00bcd4;
-  animation: rotate 3s linear infinite;
-}
-
-@keyframes rotate {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 .title-wrapper {
   display: flex;
   flex-direction: column;
@@ -173,21 +136,28 @@ function handleToggle() {
 }
 
 .subagent-badge {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  background: linear-gradient(90deg, #00bcd4, #7c4dff);
+  background: #00bcd4;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  animation: shimmer 2s infinite;
+}
+
+.subagent-message.streaming .subagent-badge {
+  background: linear-gradient(90deg, #00bcd4, #7c4dff, #00bcd4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 2s linear infinite;
   background-size: 200% 100%;
 }
 
 @keyframes shimmer {
   0% {
-    background-position: -200% 0;
+    background-position: 0% 0;
   }
   100% {
     background-position: 200% 0;
@@ -249,6 +219,10 @@ function handleToggle() {
   right: 0;
   height: 1px;
   background: linear-gradient(90deg, transparent, rgba(0, 188, 212, 0.5), transparent);
+  opacity: 0;
+}
+
+.subagent-message.streaming .content-glow {
   animation: scan 2s linear infinite;
 }
 

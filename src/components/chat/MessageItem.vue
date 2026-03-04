@@ -7,7 +7,7 @@
             :subagent-name="message.subagentName"
             :content="message.content"
             :collapsed="message.collapsed ?? true"
-            :is-streaming="isStreaming && !message.content"
+            :is-streaming="isStreaming && message.isSubagent"
             @toggle="handleToggleSubagent"
           />
         </template>
