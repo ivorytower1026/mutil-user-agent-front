@@ -49,6 +49,10 @@ export interface ApiMessage {
     status?: 'running' | 'completed'
     todos?: { content: string; status: 'pending' | 'in_progress' | 'completed' }[]
   }[]
+  
+  is_subagent_call?: boolean
+  subagent_name?: string
+  in_subagent?: boolean
 }
 
 export interface ResumeRequest {

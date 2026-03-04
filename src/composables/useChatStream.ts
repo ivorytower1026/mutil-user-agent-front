@@ -5,6 +5,7 @@ import { streamChat, streamResume } from '@/api/sse'
 import { chatApi } from '@/api'
 import type { SSEEvent, InterruptOption } from '@/types'
 import { MAX_FILE_SIZE, MAX_FILE_COUNT } from '@/types/file'
+import { isSubagentEvent, getSubagentInfo } from '@/utils/subagent'
 
 export interface PendingFile {
   file: File
@@ -109,26 +110,63 @@ async function sendMessage(threadId: string, message: string) {
     }
   }
 
-  function handleEvent(event: SSEEvent) {
+function handleEvent(event: SSEEvent) {
+    const subagentInfo = getSubagentInfo(event)
+    const isSubagent = isSubagentEvent(event)
+    
+    if (isSubagent && subagentInfo) {
+      if (chatStore.currentSubagentId !== subagentInfo.id) {
+        chatStore.startSubagent(subagentInfo.id, subagentInfo.name)
+      }
+    } else if (chatStore.currentSubagentId) {
+      chatStore.endSubagent()
+    }
+
     switch (event.event) {
       case 'messages/partial':
         if (event.content) {
-          chatStore.appendAssistantContent(event.content)
+          if (isSubagent) {
+            chatStore.addSubagentEvent({
+              type: 'content',
+              content: event.content,
+              timestamp: new Date()
+            })
+          } else {
+            chatStore.appendAssistantContent(event.content)
+          }
         }
         break
 
       case 'tool/start':
         if (event.tool) {
-          chatStore.addToolCall({
-            name: event.tool,
-            todos: event.todos
-          })
+          if (isSubagent) {
+            chatStore.addSubagentEvent({
+              type: 'tool_start',
+              tool: event.tool,
+              status: 'running',
+              timestamp: new Date()
+            })
+          } else {
+            chatStore.addToolCall({
+              name: event.tool,
+              todos: event.todos
+            })
+          }
         }
         break
 
       case 'tool/end':
         if (event.tool) {
-          chatStore.completeToolCall(event.tool)
+          if (isSubagent) {
+            chatStore.addSubagentEvent({
+              type: 'tool_end',
+              tool: event.tool,
+              status: 'completed',
+              timestamp: new Date()
+            })
+          } else {
+            chatStore.completeToolCall(event.tool)
+          }
         }
         break
 
@@ -136,8 +174,7 @@ async function sendMessage(threadId: string, message: string) {
         {
           const data = event.data || {}
           const rawOptions = data.options as InterruptOption[] | undefined
-          
-          chatStore.setInterrupt({
+          const interruptData = {
             taskName: (data.taskName as string) || (data.task_name as string) || 'Unknown',
             info: event.info || (data.info as string) || '',
             data: event.data,
@@ -148,9 +185,22 @@ async function sendMessage(threadId: string, message: string) {
               icon: opt.icon
             })),
             questions: event.questions,
-          })
-          if (sessionStore.currentThreadId) {
-            sessionStore.updateSessionStatus(sessionStore.currentThreadId, 'interrupted')
+          }
+          
+          if (isSubagent) {
+            chatStore.addSubagentEvent({
+              type: 'interrupt',
+              info: interruptData.info,
+              taskName: interruptData.taskName,
+              data: interruptData.data,
+              questions: interruptData.questions,
+              timestamp: new Date()
+            })
+          } else {
+            chatStore.setInterrupt(interruptData)
+            if (sessionStore.currentThreadId) {
+              sessionStore.updateSessionStatus(sessionStore.currentThreadId, 'interrupted')
+            }
           }
         }
         break
@@ -167,6 +217,7 @@ async function sendMessage(threadId: string, message: string) {
 
       case 'end':
         chatStore.markSegmentEnd()
+        chatStore.endSubagent()
         if (sessionStore.currentThreadId) {
           sessionStore.updateSessionStatus(sessionStore.currentThreadId, 'idle')
         }

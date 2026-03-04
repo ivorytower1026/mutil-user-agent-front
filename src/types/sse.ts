@@ -37,4 +37,8 @@ export interface SSEEvent {
   title?: string
   questions?: Question[]
   todos?: Todo[]
+  
+  namespace?: string[]
+  subagent_id?: string
+  subagent_name?: string
 }

@@ -6,17 +6,30 @@
           <MarkdownRenderer v-if="message.content" :content="message.content" />
           <LoadingDots v-if="isStreaming && !message.content" />
         </div>
+        
+        <SubagentMessage
+          v-if="hasSubagentEvents"
+          :subagent-id="message.subagentId"
+          :subagent-name="message.subagentName"
+          :events="message.subagentEvents || []"
+          :collapsed="message.collapsed ?? true"
+          :is-streaming="isStreaming && !message.subagentEvents?.length"
+          @toggle="handleToggleSubagent"
+        />
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import type { Message } from "@/types/chat";
+import { useChatStore } from "@/stores/chat";
 import MarkdownRenderer from "./MarkdownRenderer.vue";
 import LoadingDots from "./LoadingDots.vue";
+import SubagentMessage from "./SubagentMessage.vue";
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     message: Message;
     isStreaming?: boolean;
@@ -25,6 +38,17 @@ withDefaults(
     isStreaming: false,
   }
 );
+
+const chatStore = useChatStore();
+
+const hasSubagentEvents = computed(() => {
+  return props.message.isSubagent && 
+         (props.message.subagentEvents?.length || 0) > 0;
+});
+
+function handleToggleSubagent() {
+  chatStore.toggleSubagentCollapse(props.message.id);
+}
 </script>
 
 <style scoped>

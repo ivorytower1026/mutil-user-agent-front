@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { Message, Interrupt, AgentMode, Todo, ToolCall } from '@/types/chat'
+import type { Message, Interrupt, AgentMode, Todo, ToolCall, SubagentEvent } from '@/types/chat'
 import { chatApi } from '@/api'
+import { isSubagentHistoryMessage } from '@/utils/subagent'
 
 const DEFAULT_MODE: AgentMode = 'build'
 const STORAGE_KEY = 'agent_mode'
@@ -26,6 +27,8 @@ export const useChatStore = defineStore('chat', () => {
   const streamingContent = ref('')
   const needsNewline = ref(false)
   const mode = ref<AgentMode>(getStoredMode())
+  const currentSubagentId = ref<string | null>(null)
+  const currentSubagentName = ref<string | null>(null)
 
   function addUserMessage(content: string) {
     messages.value.push({
@@ -118,9 +121,41 @@ function setLoading(value: boolean) {
     error.value = msg
   }
 
-  function clearMessages() {
+function clearMessages() {
     messages.value = []
     streamingContent.value = ''
+    currentSubagentId.value = null
+    currentSubagentName.value = null
+  }
+
+  function startSubagent(subagentId: string, subagentName: string) {
+    currentSubagentId.value = subagentId
+    currentSubagentName.value = subagentName
+  }
+
+  function endSubagent() {
+    currentSubagentId.value = null
+    currentSubagentName.value = null
+  }
+
+  function addSubagentEvent(event: SubagentEvent) {
+    const lastMessage = messages.value[messages.value.length - 1]
+    if (lastMessage && lastMessage.role === 'assistant') {
+      if (!lastMessage.subagentEvents) {
+        lastMessage.subagentEvents = []
+      }
+      lastMessage.subagentEvents.push(event)
+      lastMessage.isSubagent = true
+      lastMessage.subagentId = currentSubagentId.value || undefined
+      lastMessage.subagentName = currentSubagentName.value || undefined
+    }
+  }
+
+  function toggleSubagentCollapse(messageId: string) {
+    const message = messages.value.find(m => m.id === messageId)
+    if (message) {
+      message.collapsed = !message.collapsed
+    }
   }
 
   function setMode(newMode: AgentMode) {
@@ -128,7 +163,7 @@ function setLoading(value: boolean) {
     localStorage.setItem(STORAGE_KEY, newMode)
   }
 
-  async function loadHistory(threadId: string) {
+async function loadHistory(threadId: string) {
     try {
       const response = await chatApi.getHistory(threadId)
       messages.value = response.messages.map((msg, index) => {
@@ -148,6 +183,12 @@ function setLoading(value: boolean) {
             todos: tc.todos
           })) as ToolCall[]
         }
+
+        if (isSubagentHistoryMessage(msg)) {
+          formattedMsg.isSubagent = true
+          formattedMsg.subagentName = msg.subagent_name || 'Unknown Subagent'
+          formattedMsg.collapsed = true
+        }
         
         return formattedMsg
       })
@@ -156,13 +197,15 @@ function setLoading(value: boolean) {
     }
   }
 
- return {
+return {
     messages,
     interrupt,
     isLoading,
     error,
     streamingContent,
     mode,
+    currentSubagentId,
+    currentSubagentName,
     addUserMessage,
     startAssistantMessage,
     appendAssistantContent,
@@ -175,6 +218,10 @@ function setLoading(value: boolean) {
     clearMessages,
     loadHistory,
     markSegmentEnd,
-    setMode
+    setMode,
+    startSubagent,
+    endSubagent,
+    addSubagentEvent,
+    toggleSubagentCollapse
   }
 })
