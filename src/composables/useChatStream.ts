@@ -44,7 +44,7 @@ export function useChatStream() {
     pendingFiles.value = []
   }
 
-async function sendMessage(threadId: string, message: string) {
+  async function sendMessage(threadId: string, message: string) {
     if (!message.trim() && pendingFiles.value.length === 0) return
 
     const filePaths: string[] = []
@@ -110,28 +110,33 @@ async function sendMessage(threadId: string, message: string) {
     }
   }
 
-function handleEvent(event: SSEEvent) {
+  function handleEvent(event: SSEEvent) {
     const subagentInfo = getSubagentInfo(event)
     const isSubagent = isSubagentEvent(event)
     
-    if (isSubagent && subagentInfo) {
-      if (chatStore.currentSubagentId !== subagentInfo.id) {
-        chatStore.startSubagent(subagentInfo.id, subagentInfo.name)
-      }
-    } else if (chatStore.currentSubagentId) {
-      chatStore.endSubagent()
+    if (event.event === 'messages/partial' && event.content) {
+      console.log('[handleEvent]', {
+        event: event.event,
+        isSubagent,
+        namespace: event.namespace,
+        subagent_id: event.subagent_id,
+        subagent_name: event.subagent_name,
+        content: event.content.slice(0, 50)
+      })
     }
 
     switch (event.event) {
       case 'messages/partial':
         if (event.content) {
-          if (isSubagent) {
-            chatStore.addSubagentEvent({
-              type: 'content',
-              content: event.content,
-              timestamp: new Date()
-            })
+          if (isSubagent && subagentInfo) {
+            if (!chatStore.inSubagent) {
+              chatStore.startSubagentMessage(subagentInfo.id, subagentInfo.name)
+            }
+            chatStore.appendSubagentContent(event.content)
           } else {
+            if (chatStore.inSubagent) {
+              chatStore.endSubagentMessage()
+            }
             chatStore.appendAssistantContent(event.content)
           }
         }
@@ -139,14 +144,10 @@ function handleEvent(event: SSEEvent) {
 
       case 'tool/start':
         if (event.tool) {
-          if (isSubagent) {
-            chatStore.addSubagentEvent({
-              type: 'tool_start',
-              tool: event.tool,
-              status: 'running',
-              timestamp: new Date()
-            })
-          } else {
+          if (!isSubagent) {
+            if (chatStore.inSubagent) {
+              chatStore.endSubagentMessage()
+            }
             chatStore.addToolCall({
               name: event.tool,
               todos: event.todos
@@ -157,14 +158,7 @@ function handleEvent(event: SSEEvent) {
 
       case 'tool/end':
         if (event.tool) {
-          if (isSubagent) {
-            chatStore.addSubagentEvent({
-              type: 'tool_end',
-              tool: event.tool,
-              status: 'completed',
-              timestamp: new Date()
-            })
-          } else {
+          if (!isSubagent) {
             chatStore.completeToolCall(event.tool)
           }
         }
@@ -187,16 +181,7 @@ function handleEvent(event: SSEEvent) {
             questions: event.questions,
           }
           
-          if (isSubagent) {
-            chatStore.addSubagentEvent({
-              type: 'interrupt',
-              info: interruptData.info,
-              taskName: interruptData.taskName,
-              data: interruptData.data,
-              questions: interruptData.questions,
-              timestamp: new Date()
-            })
-          } else {
+          if (!isSubagent) {
             chatStore.setInterrupt(interruptData)
             if (sessionStore.currentThreadId) {
               sessionStore.updateSessionStatus(sessionStore.currentThreadId, 'interrupted')
@@ -217,7 +202,9 @@ function handleEvent(event: SSEEvent) {
 
       case 'end':
         chatStore.markSegmentEnd()
-        chatStore.endSubagent()
+        if (chatStore.inSubagent) {
+          chatStore.endSubagentMessage()
+        }
         if (sessionStore.currentThreadId) {
           sessionStore.updateSessionStatus(sessionStore.currentThreadId, 'idle')
         }
@@ -231,7 +218,7 @@ function handleEvent(event: SSEEvent) {
     }
   }
 
-return {
+  return {
     sendMessage,
     resumeInterrupt,
     stopStream,

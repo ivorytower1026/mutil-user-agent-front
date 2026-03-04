@@ -1,28 +1,28 @@
 <template>
-  <div class="message-item" :class="message.role">
+  <div class="message-item" :class="[message.role, { subagent: message.isSubagent }]">
     <div class="message-content">
       <div class="message-body">
-        <div class="message-text">
-          <MarkdownRenderer v-if="message.content" :content="message.content" />
-          <LoadingDots v-if="isStreaming && !message.content" />
-        </div>
-        
-        <SubagentMessage
-          v-if="hasSubagentEvents"
-          :subagent-id="message.subagentId"
-          :subagent-name="message.subagentName"
-          :events="message.subagentEvents || []"
-          :collapsed="message.collapsed ?? true"
-          :is-streaming="isStreaming && !message.subagentEvents?.length"
-          @toggle="handleToggleSubagent"
-        />
+        <template v-if="message.isSubagent">
+          <SubagentMessage
+            :subagent-name="message.subagentName"
+            :content="message.content"
+            :collapsed="message.collapsed ?? true"
+            :is-streaming="isStreaming && !message.content"
+            @toggle="handleToggleSubagent"
+          />
+        </template>
+        <template v-else>
+          <div class="message-text">
+            <MarkdownRenderer v-if="message.content" :content="message.content" />
+            <LoadingDots v-if="isStreaming && !message.content" />
+          </div>
+        </template>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
 import type { Message } from "@/types/chat";
 import { useChatStore } from "@/stores/chat";
 import MarkdownRenderer from "./MarkdownRenderer.vue";
@@ -41,11 +41,6 @@ const props = withDefaults(
 
 const chatStore = useChatStore();
 
-const hasSubagentEvents = computed(() => {
-  return props.message.isSubagent && 
-         (props.message.subagentEvents?.length || 0) > 0;
-});
-
 function handleToggleSubagent() {
   chatStore.toggleSubagentCollapse(props.message.id);
 }
@@ -54,6 +49,10 @@ function handleToggleSubagent() {
 <style scoped>
 .message-item {
   padding: 12px 0;
+}
+
+.message-item.subagent {
+  padding: 4px 0;
 }
 
 .message-content {

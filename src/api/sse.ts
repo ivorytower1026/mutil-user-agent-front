@@ -84,6 +84,9 @@ function mapToSSEEvent(raw: RawSSEEvent): SSEEvent {
     title: raw.data.title as string | undefined,
     questions: raw.data.questions as SSEEvent['questions'],
     todos: raw.data.todos as SSEEvent['todos'],
+    namespace: raw.data.namespace as string[] | undefined,
+    subagent_id: raw.data.subagent_id as string | undefined,
+    subagent_name: raw.data.subagent_name as string | undefined,
   }
 }
 

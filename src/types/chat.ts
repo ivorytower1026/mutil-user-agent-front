@@ -15,7 +15,6 @@ export interface Message {
   isSubagent?: boolean
   subagentId?: string
   subagentName?: string
-  subagentEvents?: SubagentEvent[]
   collapsed?: boolean
 }
 
@@ -25,18 +24,6 @@ export interface ToolCall {
   status: 'running' | 'completed'
   timestamp: Date
   todos?: Todo[]
-}
-
-export interface SubagentEvent {
-  type: 'content' | 'tool_start' | 'tool_end' | 'interrupt'
-  content?: string
-  tool?: string
-  status?: 'running' | 'completed'
-  info?: string
-  taskName?: string
-  data?: Record<string, unknown>
-  questions?: Question[]
-  timestamp: Date
 }
 
 export interface InterruptOption {

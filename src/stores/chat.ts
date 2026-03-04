@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { Message, Interrupt, AgentMode, Todo, ToolCall, SubagentEvent } from '@/types/chat'
+import type { Message, Interrupt, AgentMode, Todo, ToolCall } from '@/types/chat'
 import { chatApi } from '@/api'
 import { isSubagentHistoryMessage } from '@/utils/subagent'
 
@@ -27,8 +27,8 @@ export const useChatStore = defineStore('chat', () => {
   const streamingContent = ref('')
   const needsNewline = ref(false)
   const mode = ref<AgentMode>(getStoredMode())
-  const currentSubagentId = ref<string | null>(null)
-  const currentSubagentName = ref<string | null>(null)
+  const inSubagent = ref(false)
+  const subagentStreamingContent = ref('')
 
   function addUserMessage(content: string) {
     messages.value.push({
@@ -57,7 +57,7 @@ export const useChatStore = defineStore('chat', () => {
     }
     streamingContent.value += chunk
     const lastMessage = messages.value[messages.value.length - 1]
-    if (lastMessage && lastMessage.role === 'assistant') {
+    if (lastMessage && lastMessage.role === 'assistant' && !lastMessage.isSubagent) {
       lastMessage.content = streamingContent.value
     }
   }
@@ -68,12 +68,11 @@ export const useChatStore = defineStore('chat', () => {
 
   function addToolCall(toolCall: { name: string; todos?: Todo[] }) {
     const lastMessage = messages.value[messages.value.length - 1]
-    if (lastMessage && lastMessage.role === 'assistant') {
+    if (lastMessage && lastMessage.role === 'assistant' && !lastMessage.isSubagent) {
       if (!lastMessage.toolCalls) {
         lastMessage.toolCalls = []
       }
       
-      // write_todos 特殊处理：更新现有的而不是创建新的
       if (toolCall.name === 'write_todos' && toolCall.todos) {
         const existingTodo = lastMessage.toolCalls.find(tc => tc.name === 'write_todos')
         if (existingTodo) {
@@ -95,7 +94,7 @@ export const useChatStore = defineStore('chat', () => {
 
   function completeToolCall(toolName: string) {
     const lastMessage = messages.value[messages.value.length - 1]
-    if (lastMessage && lastMessage.toolCalls) {
+    if (lastMessage && lastMessage.toolCalls && !lastMessage.isSubagent) {
       const toolCall = lastMessage.toolCalls.find(
         tc => tc.name === toolName && tc.status === 'running'
       )
@@ -113,7 +112,7 @@ export const useChatStore = defineStore('chat', () => {
     interrupt.value = null
   }
 
-function setLoading(value: boolean) {
+  function setLoading(value: boolean) {
     isLoading.value = value
   }
 
@@ -121,34 +120,48 @@ function setLoading(value: boolean) {
     error.value = msg
   }
 
-function clearMessages() {
+  function clearMessages() {
     messages.value = []
     streamingContent.value = ''
-    currentSubagentId.value = null
-    currentSubagentName.value = null
+    inSubagent.value = false
+    subagentStreamingContent.value = ''
   }
 
-  function startSubagent(subagentId: string, subagentName: string) {
-    currentSubagentId.value = subagentId
-    currentSubagentName.value = subagentName
+  function startSubagentMessage(subagentId: string, subagentName: string) {
+    if (inSubagent.value) return
+    inSubagent.value = true
+    subagentStreamingContent.value = ''
+    messages.value.push({
+      id: generateId(),
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+      isSubagent: true,
+      subagentId,
+      subagentName,
+      collapsed: true
+    })
   }
 
-  function endSubagent() {
-    currentSubagentId.value = null
-    currentSubagentName.value = null
-  }
-
-  function addSubagentEvent(event: SubagentEvent) {
+  function appendSubagentContent(chunk: string) {
+    subagentStreamingContent.value += chunk
     const lastMessage = messages.value[messages.value.length - 1]
-    if (lastMessage && lastMessage.role === 'assistant') {
-      if (!lastMessage.subagentEvents) {
-        lastMessage.subagentEvents = []
-      }
-      lastMessage.subagentEvents.push(event)
-      lastMessage.isSubagent = true
-      lastMessage.subagentId = currentSubagentId.value || undefined
-      lastMessage.subagentName = currentSubagentName.value || undefined
+    if (lastMessage && lastMessage.isSubagent) {
+      lastMessage.content = subagentStreamingContent.value
     }
+  }
+
+  function endSubagentMessage() {
+    inSubagent.value = false
+    subagentStreamingContent.value = ''
+    streamingContent.value = ''
+    needsNewline.value = false
+    messages.value.push({
+      id: generateId(),
+      role: 'assistant',
+      content: '',
+      timestamp: new Date()
+    })
   }
 
   function toggleSubagentCollapse(messageId: string) {
@@ -163,7 +176,7 @@ function clearMessages() {
     localStorage.setItem(STORAGE_KEY, newMode)
   }
 
-async function loadHistory(threadId: string) {
+  async function loadHistory(threadId: string) {
     try {
       const response = await chatApi.getHistory(threadId)
       messages.value = response.messages.map((msg, index) => {
@@ -197,15 +210,14 @@ async function loadHistory(threadId: string) {
     }
   }
 
-return {
+  return {
     messages,
     interrupt,
     isLoading,
     error,
     streamingContent,
     mode,
-    currentSubagentId,
-    currentSubagentName,
+    inSubagent,
     addUserMessage,
     startAssistantMessage,
     appendAssistantContent,
@@ -219,9 +231,9 @@ return {
     loadHistory,
     markSegmentEnd,
     setMode,
-    startSubagent,
-    endSubagent,
-    addSubagentEvent,
+    startSubagentMessage,
+    appendSubagentContent,
+    endSubagentMessage,
     toggleSubagentCollapse
   }
 })

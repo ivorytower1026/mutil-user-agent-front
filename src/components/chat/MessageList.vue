@@ -73,9 +73,9 @@ const filteredMessages = computed(() => {
   for (let i = 0; i < props.messages.length; i++) {
     const msg = props.messages[i]
     const hasContent = msg.content && msg.content.trim() !== ""
-    const hasSubagentEvents = msg.isSubagent && msg.subagentEvents && msg.subagentEvents.length > 0
+    const isSubagentMsg = msg.isSubagent === true
     
-    if (hasContent || hasSubagentEvents) {
+    if (hasContent || isSubagentMsg) {
       result.push(msg)
     } else if (
       props.isStreaming &&
