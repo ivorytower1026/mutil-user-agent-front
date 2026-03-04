@@ -70,16 +70,16 @@ function handleToggle() {
   margin: 12px 0;
   margin-left: 16px;
   border-left: 3px solid;
-  border-image: linear-gradient(180deg, #00bcd4, #7c4dff) 1;
+  border-image: linear-gradient(180deg, #3b82f6, #8b5cf6) 1;
   border-radius: 0 12px 12px 0;
   overflow: hidden;
-  background: linear-gradient(135deg, rgba(0, 188, 212, 0.05) 0%, rgba(124, 77, 255, 0.05) 100%);
-  box-shadow: 0 2px 12px rgba(0, 188, 212, 0.1);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.04) 0%, rgba(139, 92, 246, 0.04) 100%);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.08);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .subagent-message:hover {
-  box-shadow: 0 4px 20px rgba(0, 188, 212, 0.2);
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.12);
   transform: translateX(2px);
 }
 
@@ -97,7 +97,7 @@ function handleToggle() {
   justify-content: space-between;
   padding: 12px 16px;
   cursor: pointer;
-  background: linear-gradient(90deg, rgba(0, 188, 212, 0.08) 0%, rgba(124, 77, 255, 0.08) 100%);
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.06) 0%, rgba(139, 92, 246, 0.06) 100%);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   user-select: none;
   position: relative;
@@ -110,7 +110,7 @@ function handleToggle() {
   top: 0;
   bottom: 0;
   width: 3px;
-  background: linear-gradient(180deg, #00bcd4, #7c4dff);
+  background: linear-gradient(180deg, #3b82f6, #8b5cf6);
   opacity: 0;
   transition: opacity 0.3s;
 }
@@ -120,7 +120,7 @@ function handleToggle() {
 }
 
 .subagent-header:hover {
-  background: linear-gradient(90deg, rgba(0, 188, 212, 0.12) 0%, rgba(124, 77, 255, 0.12) 100%);
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
 }
 
 .header-left {
@@ -136,18 +136,18 @@ function handleToggle() {
 }
 
 .subagent-badge {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  background: #00bcd4;
+  background: #3b82f6;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .subagent-message.streaming .subagent-badge {
-  background: linear-gradient(90deg, #00bcd4, #7c4dff, #00bcd4);
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6, #3b82f6);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -181,7 +181,7 @@ function handleToggle() {
 }
 
 .toggle-icon {
-  color: #00bcd4;
+  color: #3b82f6;
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -208,8 +208,8 @@ function handleToggle() {
   padding: 16px 20px;
   font-size: 14px;
   line-height: 1.6;
-  background: rgba(255, 255, 255, 0.02);
-  border-top: 1px solid rgba(0, 188, 212, 0.15);
+  background: rgba(128, 128, 128, 0.05);
+  border-top: 1px solid rgba(59, 130, 246, 0.2);
 }
 
 .content-glow {
@@ -218,7 +218,7 @@ function handleToggle() {
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(0, 188, 212, 0.5), transparent);
+  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.6), transparent);
   opacity: 0;
 }
 
