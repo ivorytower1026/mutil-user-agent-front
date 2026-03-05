@@ -21,6 +21,9 @@
       <div v-else-if="isStreaming" class="loading-container">
         <LoadingDots />
       </div>
+      <div v-if="!isStreaming && content" class="subagent-copy-button">
+        <CopyButton :text="content" size="small" />
+      </div>
     </div>
   </div>
 </template>
@@ -29,6 +32,7 @@
 import { computed } from 'vue'
 import MarkdownRenderer from './MarkdownRenderer.vue'
 import LoadingDots from './LoadingDots.vue'
+import CopyButton from '@/components/common/CopyButton.vue'
 
 const props = withDefaults(defineProps<{
   subagentName?: string
@@ -210,6 +214,18 @@ function handleToggle() {
   line-height: 1.6;
   background: rgba(128, 128, 128, 0.05);
   border-top: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.subagent-copy-button {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.subagent-content:hover .subagent-copy-button {
+  opacity: 1;
 }
 
 .content-glow {

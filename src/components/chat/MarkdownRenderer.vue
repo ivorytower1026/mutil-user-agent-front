@@ -1,15 +1,19 @@
 <template>
-  <div class="markdown-content" v-html="renderedContent"></div>
+  <div class="markdown-content" v-html="renderedContent" ref="contentRef"></div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, onMounted, onUpdated } from 'vue'
 import { marked } from 'marked'
 import hljs from 'highlight.js'
+import { useNotification } from '@/stores/notification'
 
 const props = defineProps<{
   content: string
 }>()
+
+const contentRef = ref<HTMLElement>()
+const notification = useNotification()
 
 const renderer = new marked.Renderer()
 
@@ -24,7 +28,26 @@ renderer.code = function({ text, lang }: { text: string; lang?: string }) {
   } else {
     highlighted = hljs.highlightAuto(text).value
   }
-  return `<pre><code class="hljs">${highlighted}</code></pre>`
+  
+  const escapedCode = text
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+  
+  return `
+    <div class="code-block-wrapper">
+      <div class="code-header">
+        <span class="code-language">${lang || 'code'}</span>
+        <button class="code-copy-btn" data-code="${escapedCode}">
+          <span class="copy-icon">📋</span>
+          <span class="copy-text">复制</span>
+        </button>
+      </div>
+      <pre><code class="hljs">${highlighted}</code></pre>
+    </div>
+  `
 }
 
 marked.setOptions({
@@ -41,6 +64,51 @@ const renderedContent = computed(() => {
     return props.content
   }
 })
+
+function attachCopyListeners() {
+  if (!contentRef.value) return
+  
+  const copyButtons = contentRef.value.querySelectorAll('.code-copy-btn')
+  copyButtons.forEach((btn) => {
+    btn.removeEventListener('click', handleCodeCopy)
+    btn.addEventListener('click', handleCodeCopy)
+  })
+}
+
+async function handleCodeCopy(event: Event) {
+  const button = event.currentTarget as HTMLButtonElement
+  const code = button.getAttribute('data-code')
+  
+  if (!code) return
+  
+  try {
+    await navigator.clipboard.writeText(code)
+    
+    const iconSpan = button.querySelector('.copy-icon')
+    const textSpan = button.querySelector('.copy-text')
+    
+    if (iconSpan) iconSpan.textContent = '✓'
+    if (textSpan) textSpan.textContent = '已复制'
+    
+    notification.success('代码已复制到剪贴板')
+    
+    setTimeout(() => {
+      if (iconSpan) iconSpan.textContent = '📋'
+      if (textSpan) textSpan.textContent = '复制'
+    }, 2000)
+  } catch (error) {
+    notification.error('复制失败，请手动选择复制')
+    console.error('Copy failed:', error)
+  }
+}
+
+onMounted(() => {
+  attachCopyListeners()
+})
+
+onUpdated(() => {
+  attachCopyListeners()
+})
 </script>
 
 <style>
@@ -48,12 +116,62 @@ const renderedContent = computed(() => {
   line-height: 1.6;
 }
 
-.markdown-content pre {
-  background-color: rgba(0, 0, 0, 0.05);
+.markdown-content .code-block-wrapper {
+  position: relative;
+  margin: 8px 0;
   border-radius: 8px;
+  overflow: hidden;
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.markdown-content .code-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.markdown-content .code-language {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.markdown-content .code-copy-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.6);
+  transition: all 0.2s;
+}
+
+.markdown-content .code-copy-btn:hover {
+  background-color: rgba(0, 0, 0, 0.08);
+  color: rgba(0, 0, 0, 0.87);
+}
+
+.markdown-content .code-copy-btn .copy-icon {
+  font-size: 14px;
+}
+
+.markdown-content pre {
+  margin: 0;
   padding: 12px;
   overflow-x: auto;
-  margin: 8px 0;
+}
+
+.markdown-content pre code {
+  display: block;
 }
 
 .markdown-content code {
@@ -116,6 +234,28 @@ const renderedContent = computed(() => {
 
 .markdown-content th {
   background-color: rgba(0, 0, 0, 0.05);
+}
+
+.v-theme--dark .markdown-content .code-block-wrapper {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.v-theme--dark .markdown-content .code-header {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+.v-theme--dark .markdown-content .code-language {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.v-theme--dark .markdown-content .code-copy-btn {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.v-theme--dark .markdown-content .code-copy-btn:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.95);
 }
 
 .v-theme--dark .markdown-content pre,

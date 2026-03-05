@@ -17,12 +17,25 @@
     </div>
 
 <template v-else>
-      <MessageItem
-        v-for="(message, index) in filteredMessages"
-        :key="message.id"
-        :message="message"
-        :is-streaming="isStreaming && index === filteredMessages.length - 1"
-      />
+      <div
+        v-for="(group, index) in messageGroups"
+        :key="`group-${index}`"
+        class="message-group"
+      >
+        <MessageItem
+          v-for="message in group.messages"
+          :key="message.id"
+          :message="message"
+          :is-streaming="isStreaming && index === messageGroups.length - 1 && message === group.messages[group.messages.length - 1]"
+          :show-copy-button="message.role === 'user'"
+        />
+        <div
+          v-if="group.type === 'assistant' && !isStreaming && group.combinedContent"
+          class="group-actions"
+        >
+          <CopyButton :text="group.combinedContent" size="small" />
+        </div>
+      </div>
     </template>
 
     <div v-if="latestTodos" class="global-todos">
@@ -46,6 +59,13 @@ import { ref, watch, nextTick, computed } from "vue";
 import type { Message, Todo } from "@/types/chat";
 import MessageItem from "./MessageItem.vue";
 import TodoListCard from "./TodoListCard.vue";
+import CopyButton from "@/components/common/CopyButton.vue";
+
+interface MessageGroup {
+  type: 'user' | 'assistant'
+  messages: Message[]
+  combinedContent?: string
+}
 
 const props = defineProps<{
   messages: Message[];
@@ -86,6 +106,51 @@ const filteredMessages = computed(() => {
     }
   }
   return result
+})
+
+const messageGroups = computed<MessageGroup[]>(() => {
+  const groups: MessageGroup[] = []
+  let currentGroup: MessageGroup | null = null
+  
+  for (const message of filteredMessages.value) {
+    if (message.role === 'user') {
+      if (currentGroup) {
+        groups.push(currentGroup)
+        currentGroup = null
+      }
+      groups.push({
+        type: 'user',
+        messages: [message]
+      })
+    } else if (message.role === 'assistant' || message.role === 'tool') {
+      if (!currentGroup || currentGroup.type === 'user') {
+        if (currentGroup) {
+          groups.push(currentGroup)
+        }
+        currentGroup = {
+          type: 'assistant',
+          messages: [message]
+        }
+      } else {
+        currentGroup.messages.push(message)
+      }
+    }
+  }
+  
+  if (currentGroup) {
+    groups.push(currentGroup)
+  }
+  
+  for (const group of groups) {
+    if (group.type === 'assistant') {
+      group.combinedContent = group.messages
+        .map(m => m.content || '')
+        .filter(c => c.trim())
+        .join('\n\n')
+    }
+  }
+  
+  return groups
 })
 
 const listRef = ref<HTMLElement | null>(null);
@@ -140,6 +205,26 @@ watch(
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+}
+
+.message-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.group-actions {
+  display: flex;
+  justify-content: flex-start;
+  max-width: 768px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 24px 8px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.message-group:hover .group-actions {
+  opacity: 1;
 }
 
 .global-todos {
