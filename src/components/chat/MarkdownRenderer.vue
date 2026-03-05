@@ -7,6 +7,7 @@ import { computed, ref, onMounted, onUpdated } from 'vue'
 import { marked } from 'marked'
 import hljs from 'highlight.js'
 import { useNotification } from '@/stores/notification'
+import { useAuthStore } from '@/stores/auth'
 
 const props = defineProps<{
   content: string
@@ -14,6 +15,7 @@ const props = defineProps<{
 
 const contentRef = ref<HTMLElement>()
 const notification = useNotification()
+const authStore = useAuthStore()
 
 const renderer = new marked.Renderer()
 
@@ -56,10 +58,32 @@ marked.setOptions({
   gfm: true
 })
 
+function preprocessWorkspacePaths(content: string): string {
+  const patterns = [
+    /`\/workspace\/([^`]+)`/g,
+    /`\*\*位置：\*\*` `\/workspace\/([^`]+)`/g,
+    /\/workspace\/([a-zA-Z0-9_\-./]+\.[a-zA-Z0-9]+)/g
+  ]
+  
+  let result = content
+  
+  for (const pattern of patterns) {
+    result = result.replace(pattern, (fullMatch, filePath) => {
+      const cleanPath = filePath.replace(/[`*]/g, '').trim()
+      if (!cleanPath.includes('.')) return fullMatch
+      const fileName = cleanPath.split('/').pop() || cleanPath
+      return `[📥 点击下载 ${fileName}](/dav/${cleanPath})`
+    })
+  }
+  
+  return result
+}
+
 const renderedContent = computed(() => {
   if (!props.content || typeof props.content !== 'string') return ''
   try {
-    return marked.parse(props.content) as string
+    const processed = preprocessWorkspacePaths(props.content)
+    return marked.parse(processed) as string
   } catch {
     return props.content
   }
@@ -73,6 +97,52 @@ function attachCopyListeners() {
     btn.removeEventListener('click', handleCodeCopy)
     btn.addEventListener('click', handleCodeCopy)
   })
+
+  const downloadLinks = contentRef.value.querySelectorAll('a[href^="/dav/"]')
+  downloadLinks.forEach((link) => {
+    link.removeEventListener('click', handleDownloadLink)
+    link.addEventListener('click', handleDownloadLink)
+  })
+}
+
+async function handleDownloadLink(event: Event) {
+  event.preventDefault()
+  const link = event.currentTarget as HTMLAnchorElement
+  const href = link.getAttribute('href')
+  
+  if (!href || !href.startsWith('/dav/')) return
+  
+  const fileName = decodeURIComponent(href.split('/').pop() || 'download')
+  
+  try {
+    const response = await fetch(href, {
+      headers: {
+        Authorization: `Bearer ${authStore.token}`
+      }
+    })
+    
+    if (!response.ok) {
+      throw new Error(`下载失败: ${response.status}`)
+    }
+    
+    const blob = await response.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = fileName
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    
+    notification.success(`文件 ${fileName} 下载成功`)
+  } catch (error) {
+    notification.error(`下载失败: ${error}`)
+    console.error('Download failed:', error)
+  } finally {
+    link.classList.remove('downloading')
+    link.textContent = `📥 下载 ${fileName}`
+  }
 }
 
 async function handleCodeCopy(event: Event) {
@@ -217,6 +287,11 @@ onUpdated(() => {
 
 .markdown-content a:hover {
   text-decoration: underline;
+}
+
+.markdown-content a[href^="/dav/"] {
+  color: #1976D2;
+  font-weight: 500;
 }
 
 .markdown-content table {
