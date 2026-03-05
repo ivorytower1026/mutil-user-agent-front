@@ -29,8 +29,8 @@ onMounted(() => {
 <style>
 html,
 body {
-  overflow: hidden;
-  height: 100vh;
+  overflow: hidden !important;
+  height: 100vh !important;
   margin: 0;
   padding: 0;
 }
@@ -42,7 +42,21 @@ body {
 .v-application__wrap {
   min-height: 100vh;
   max-height: 100vh;
-  overflow: hidden;
+  overflow: hidden !important;
+}
+
+.v-layout {
+  overflow: hidden !important;
+}
+
+.v-main {
+  overflow: hidden !important;
+}
+
+.v-main > .v-container {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .v-navigation-drawer {

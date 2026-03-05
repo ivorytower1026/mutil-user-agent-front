@@ -38,7 +38,7 @@
       </v-list>
     </v-navigation-drawer>
 
-    <v-main class="bg-surface-light">
+    <v-main class="bg-surface-light main-content">
       <v-container fluid>
         <router-view />
       </v-container>
@@ -51,6 +51,11 @@
 
 <style scoped>
 .admin-layout {
-  min-height: 100vh;
+  height: 100vh;
+  max-height: 100vh;
+}
+
+.main-content {
+  height: 100%;
 }
 </style>
