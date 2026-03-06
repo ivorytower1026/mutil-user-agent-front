@@ -72,7 +72,7 @@ function preprocessWorkspacePaths(content: string): string {
       const cleanPath = filePath.replace(/[`*]/g, '').trim()
       if (!cleanPath.includes('.')) return fullMatch
       const fileName = cleanPath.split('/').pop() || cleanPath
-      return `[📥 点击下载 ${fileName}](/dav/${cleanPath})`
+      return `[⬇️点击下载 ${fileName}](/dav/${cleanPath})`
     })
   }
   
